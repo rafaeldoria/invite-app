@@ -1,43 +1,33 @@
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
+import { translate, translatePlural, type Replacements, type TranslationKey } from '../locales';
 import type { Locale, SharedPageProps } from '../types/shared';
-import { readStorage, writeStorage } from '../utils/storage';
-import { translate } from '../utils/translations';
-
-const storageKey = 'invite-app-locale';
-
-function isLocale(value: string | null): value is Locale {
-    return value === 'pt-BR' || value === 'en-US';
-}
 
 export function useLocale() {
-    const pageLocale = usePage<SharedPageProps>().props.locale;
-    const [locale, setLocale] = useState<Locale>(() => {
-        const storedLocale = readStorage(storageKey);
-
-        return isLocale(storedLocale) ? storedLocale : pageLocale;
-    });
-
-    useEffect(() => {
-        const synchronize = (event: Event) => setLocale((event as CustomEvent<Locale>).detail);
-        window.addEventListener('invite-app:locale-change', synchronize);
-
-        return () => window.removeEventListener('invite-app:locale-change', synchronize);
-    }, []);
+    const locale = usePage<SharedPageProps>().props.locale;
+    const [isChanging, setIsChanging] = useState(false);
 
     useEffect(() => {
         document.documentElement.lang = locale;
     }, [locale]);
 
     const changeLocale = useCallback((nextLocale: Locale) => {
-        setLocale(nextLocale);
-        writeStorage(storageKey, nextLocale);
-        window.dispatchEvent(new CustomEvent<Locale>('invite-app:locale-change', { detail: nextLocale }));
-    }, []);
+        if (nextLocale === locale) return;
+
+        router.patch('/locale', { locale: nextLocale }, {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => setIsChanging(true),
+            onFinish: () => setIsChanging(false),
+        });
+    }, [locale]);
 
     return {
         locale,
+        isChanging,
         setLocale: changeLocale,
-        t: (key: Parameters<typeof translate>[1]) => translate(locale, key),
+        t: (key: TranslationKey, replacements?: Replacements) => translate(locale, key, replacements),
+        tp: (key: Parameters<typeof translatePlural>[1], count: number, replacements?: Replacements) =>
+            translatePlural(locale, key, count, replacements),
     };
 }

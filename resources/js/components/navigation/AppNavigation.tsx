@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import type { NavigationItem } from '../../types/shared';
-import type { TranslationKey } from '../../utils/translations';
 
 export function NavigationLinks({ items, ariaLabel, onNavigate }: { items: NavigationItem[]; ariaLabel: string; onNavigate?: () => void }) {
     const currentUrl = usePage().url;

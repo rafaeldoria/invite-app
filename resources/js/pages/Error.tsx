@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import { PageError } from '../components/feedback/PageError';
 import { useLocale } from '../hooks/use-locale';
 import { GuestLayout } from '../layouts/GuestLayout';
-import type { TranslationKey } from '../utils/translations';
+import type { TranslationKey } from '../locales';
 
 const supportedStatuses = [403, 404, 419, 429, 500, 503] as const;
 type SupportedStatus = (typeof supportedStatuses)[number];
