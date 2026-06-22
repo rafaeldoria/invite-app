@@ -52,7 +52,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn (): ?string => $request->session()->pull('success'),
                 'error' => fn (): ?string => $request->session()->pull('error'),
             ],
-            'locale' => 'pt-BR',
+            'locale' => 'en-US',
         ];
     }
 }

@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function FlashNotice({ success, error, dismissLabel }: { success: string | null; error: string | null; dismissLabel: string }) {
     const [visible, setVisible] = useState(true);
     const message = error ?? success;
+
+    useEffect(() => {
+        setVisible(true);
+    }, [message]);
 
     if (!message || !visible) return null;
 

@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request): Response {
             $status = $response->getStatusCode();
 
-            if (app()->environment(['local', 'testing']) || ! in_array($status, [403, 404, 419, 429, 500], true)) {
+            if (app()->environment(['local', 'testing']) || ! in_array($status, [403, 404, 419, 429, 500, 503], true)) {
                 return $response;
             }
 

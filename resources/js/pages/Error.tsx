@@ -4,7 +4,7 @@ import { useLocale } from '../hooks/use-locale';
 import { GuestLayout } from '../layouts/GuestLayout';
 import type { TranslationKey } from '../utils/translations';
 
-const supportedStatuses = [403, 404, 419, 429, 500] as const;
+const supportedStatuses = [403, 404, 419, 429, 500, 503] as const;
 type SupportedStatus = (typeof supportedStatuses)[number];
 
 function normalizedStatus(status: number): SupportedStatus {

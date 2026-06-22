@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
+<html lang="en-US" data-theme="light">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,14 @@
 
         <script>
             (() => {
-                const stored = localStorage.getItem('invite-app-theme');
+                let stored = null;
+
+                try {
+                    stored = localStorage.getItem('invite-app-theme');
+                } catch {
+                    // Fall back to the system preference when storage is blocked.
+                }
+
                 const mode = ['light', 'dark', 'system'].includes(stored ?? '') ? stored : 'system';
                 const theme = mode === 'system'
                     ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')

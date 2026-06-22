@@ -22,7 +22,7 @@ class InertiaApplicationShellTest extends TestCase
                 ->where('auth.user', null)
                 ->where('flash.success', null)
                 ->where('flash.error', null)
-                ->where('locale', 'pt-BR'));
+                ->where('locale', 'en-US'));
     }
 
     public function test_authenticated_shared_props_only_expose_allowlisted_user_fields(): void
@@ -68,7 +68,7 @@ class InertiaApplicationShellTest extends TestCase
         config()->set('app.debug', false);
         $this->app->instance('env', 'production');
 
-        foreach ([403, 404, 419, 429, 500] as $status) {
+        foreach ([403, 404, 419, 429, 500, 503] as $status) {
             Route::get("/shell-test/error-{$status}", fn () => abort($status));
 
             $this->withHeader('X-Inertia', 'true')

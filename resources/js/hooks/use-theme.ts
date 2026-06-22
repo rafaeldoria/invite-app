@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { readStorage, writeStorage } from '../utils/storage';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -9,7 +10,7 @@ function isThemeMode(value: string | null): value is ThemeMode {
 }
 
 function storedMode(): ThemeMode {
-    const value = window.localStorage.getItem(storageKey);
+    const value = readStorage(storageKey);
 
     return isThemeMode(value) ? value : 'system';
 }
@@ -28,7 +29,7 @@ export function useTheme() {
 
     useEffect(() => {
         apply(mode);
-        window.localStorage.setItem(storageKey, mode);
+        writeStorage(storageKey, mode);
 
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = () => mode === 'system' && apply(mode);

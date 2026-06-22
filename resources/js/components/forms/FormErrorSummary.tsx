@@ -2,13 +2,16 @@ import { useEffect, useId, useRef } from 'react';
 
 export function FormErrorSummary({ title, errors }: { title: string; errors: Array<{ fieldId: string; message: string }> }) {
     const ref = useRef<HTMLDivElement>(null);
+    const previousErrorCount = useRef(0);
     const titleId = useId();
 
     useEffect(() => {
-        if (errors.length > 0) {
+        if (previousErrorCount.current === 0 && errors.length > 0) {
             ref.current?.focus();
         }
-    }, [errors]);
+
+        previousErrorCount.current = errors.length;
+    }, [errors.length]);
 
     if (errors.length === 0) return null;
 
