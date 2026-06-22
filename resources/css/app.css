@@ -4,7 +4,103 @@
 @source '../../storage/framework/views/*.php';
 @source '../js/**/*.tsx';
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+@theme inline {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-surface-muted: var(--surface-muted);
+    --color-ink: var(--ink);
+    --color-muted: var(--muted);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-accent: var(--accent);
+    --color-accent-strong: var(--accent-strong);
+    --color-accent-soft: var(--accent-soft);
+    --color-accent-contrast: var(--accent-contrast);
+    --color-focus: var(--focus);
+    --color-info-soft: var(--info-soft);
+    --color-info-ink: var(--info-ink);
+    --color-success-soft: var(--success-soft);
+    --color-success-ink: var(--success-ink);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-ink: var(--warning-ink);
+    --color-danger: var(--danger);
+    --color-danger-strong: var(--danger-strong);
+    --color-danger-contrast: var(--danger-contrast);
+    --color-danger-soft: var(--danger-soft);
+    --color-danger-ink: var(--danger-ink);
+    --z-index-sticky: 20;
+    --z-index-toast: 50;
+    --z-index-tooltip: 60;
+}
+
+:root {
+    color-scheme: light;
+    --canvas: oklch(98.5% 0.004 270);
+    --surface: oklch(100% 0 0);
+    --surface-muted: oklch(95.5% 0.008 270);
+    --ink: oklch(22% 0.03 270);
+    --muted: oklch(43% 0.025 270);
+    --border: oklch(88% 0.012 270);
+    --border-strong: oklch(72% 0.025 270);
+    --accent: oklch(57% 0.2 355);
+    --accent-strong: oklch(45% 0.18 355);
+    --accent-soft: oklch(94% 0.035 355);
+    --accent-contrast: oklch(100% 0 0);
+    --focus: oklch(51% 0.21 265);
+    --info-soft: oklch(94% 0.035 250);
+    --info-ink: oklch(36% 0.12 250);
+    --success-soft: oklch(94% 0.045 155);
+    --success-ink: oklch(34% 0.095 155);
+    --warning-soft: oklch(94% 0.065 85);
+    --warning-ink: oklch(35% 0.09 75);
+    --danger: oklch(52% 0.2 25);
+    --danger-strong: oklch(43% 0.18 25);
+    --danger-contrast: oklch(100% 0 0);
+    --danger-soft: oklch(94% 0.04 25);
+    --danger-ink: oklch(38% 0.15 25);
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --canvas: oklch(18% 0.025 270);
+    --surface: oklch(23% 0.03 270);
+    --surface-muted: oklch(28% 0.035 270);
+    --ink: oklch(95% 0.01 270);
+    --muted: oklch(76% 0.025 270);
+    --border: oklch(34% 0.035 270);
+    --border-strong: oklch(52% 0.04 270);
+    --accent: oklch(72% 0.17 355);
+    --accent-strong: oklch(82% 0.12 355);
+    --accent-soft: oklch(31% 0.075 355);
+    --accent-contrast: oklch(18% 0.025 270);
+    --focus: oklch(76% 0.14 265);
+    --info-soft: oklch(29% 0.075 250);
+    --info-ink: oklch(84% 0.08 250);
+    --success-soft: oklch(28% 0.06 155);
+    --success-ink: oklch(83% 0.1 155);
+    --warning-soft: oklch(29% 0.065 85);
+    --warning-ink: oklch(86% 0.105 85);
+    --danger: oklch(64% 0.2 25);
+    --danger-strong: oklch(72% 0.17 25);
+    --danger-contrast: oklch(18% 0.025 270);
+    --danger-soft: oklch(29% 0.075 25);
+    --danger-ink: oklch(86% 0.09 25);
+}
+
+@layer base {
+    * { border-color: var(--border); }
+    html { min-width: 320px; background: var(--canvas); font-family: var(--font-sans); }
+    body { margin: 0; min-height: 100vh; background: var(--canvas); color: var(--ink); text-rendering: optimizeLegibility; }
+    button, input, textarea, select { font: inherit; }
+    button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+    h1, h2, h3 { text-wrap: balance; }
+    p { text-wrap: pretty; }
+    dialog::backdrop { animation: backdrop-in 150ms ease-out; }
+}
+
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
