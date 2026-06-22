@@ -14,7 +14,8 @@ class InertiaApplicationShellTest extends TestCase
 
     public function test_guest_shared_props_match_the_application_contract(): void
     {
-        $this->get('/')
+        $this->withHeader('Accept-Language', '')
+            ->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Welcome')
@@ -22,7 +23,7 @@ class InertiaApplicationShellTest extends TestCase
                 ->where('auth.user', null)
                 ->where('flash.success', null)
                 ->where('flash.error', null)
-                ->where('locale', 'en-US'));
+                ->where('locale', 'pt-BR'));
     }
 
     public function test_authenticated_shared_props_only_expose_allowlisted_user_fields(): void
