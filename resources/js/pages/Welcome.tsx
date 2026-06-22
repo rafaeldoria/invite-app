@@ -4,7 +4,7 @@ import { Alert } from '../components/feedback/Alert';
 import { EmptyState } from '../components/feedback/EmptyState';
 import { FormErrorSummary } from '../components/forms/FormErrorSummary';
 import { Field } from '../components/forms/Field';
-import { Checkbox, Select, Textarea, TextInput } from '../components/forms/controls';
+import { Checkbox, Textarea, TextInput } from '../components/forms/controls';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Dialog } from '../components/ui/Dialog';
@@ -63,14 +63,11 @@ export default function Welcome() {
                             <Field id="event-description" label={t('welcome.descriptionLabel')}>
                                 <Textarea id="event-description" name="description" />
                             </Field>
-                            <Field id="event-location" label={t('welcome.location')}>
-                                <Select id="event-location" name="location" defaultValue="">
-                                    <option value="" disabled>{t('welcome.locationPlaceholder')}</option>
-                                    <option value="main-hall">{t('welcome.locationOption')}</option>
-                                </Select>
+                            <Field id="event-address" label={t('welcome.address')}>
+                                <TextInput id="event-address" name="address" placeholder={t('welcome.addressPlaceholder')} />
                             </Field>
                             <Checkbox name="reminder" label={t('welcome.reminder')} />
-                            <Button type="submit" loading={submitting} loadingLabel={t('welcome.saving')}>{t('welcome.save')}</Button>
+                            <Button type="submit" loading={submitting} loadingLabel={t('welcome.saving')} className="mt-2 !rounded-full !px-6">{t('welcome.save')}</Button>
                         </form>
                     </Card>
 
