@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
@@ -20,9 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            AddSecurityHeaders::class,
             SetLocale::class,
             HandleInertiaRequests::class,
         ]);
+        $middleware->redirectGuestsTo(fn (): string => route('login'));
+        $middleware->redirectUsersTo(fn (): string => route('home'));
         $middleware->appendToPriorityList(StartSession::class, SetLocale::class);
         $middleware->prependToPriorityList([ThrottleRequests::class, ThrottleRequestsWithRedis::class], SetLocale::class);
     })
