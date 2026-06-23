@@ -3,8 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "tsc --noEmit && vite build",
+        "dev": "vite",
+        "test:frontend": "node --experimental-strip-types --test resources/js/locales/catalogs.test.mjs resources/js/locales/translations.test.mjs resources/js/utils/formatting.test.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
