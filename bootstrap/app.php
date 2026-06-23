@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             HandleInertiaRequests::class,
         ]);
+        $middleware->authenticateSessions();
         $middleware->redirectGuestsTo(fn (): string => route('login'));
         $middleware->redirectUsersTo(fn (): string => route('home'));
         $middleware->appendToPriorityList(StartSession::class, SetLocale::class);

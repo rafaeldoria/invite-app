@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -94,6 +95,84 @@ class PasswordResetTest extends TestCase
         $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
     }
 
+    public function test_password_reset_failures_use_generic_feedback(): void
+    {
+        User::factory()->create(['email' => 'reset@example.com']);
+
+        $this->from(route('password.reset', ['token' => 'invalid-token']))
+            ->post(route('password.store'), [
+                'token' => 'invalid-token',
+                'email' => 'reset@example.com',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
+
+        $this->from(route('password.reset', ['token' => 'invalid-token']))
+            ->post(route('password.store'), [
+                'token' => 'invalid-token',
+                'email' => 'unknown@example.com',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
+    }
+
+    public function test_password_reset_rejects_passwords_longer_than_bcrypt_limit(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => Hash::make('old-password'),
+        ]);
+        $token = Password::broker()->createToken($user);
+        $longPassword = str_repeat('a', 73);
+
+        $this->from(route('password.reset', ['token' => $token]))
+            ->post(route('password.store'), [
+                'token' => $token,
+                'email' => 'reset@example.com',
+                'password' => $longPassword,
+                'password_confirmation' => $longPassword,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('password');
+
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    public function test_password_reset_revokes_database_sessions_for_the_user(): void
+    {
+        config()->set('session.driver', 'database');
+
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => Hash::make('old-password'),
+        ]);
+        $token = Password::broker()->createToken($user);
+
+        DB::table('sessions')->insert([
+            'id' => 'active-session',
+            'user_id' => $user->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Feature test',
+            'payload' => 'payload',
+            'last_activity' => now()->timestamp,
+        ]);
+
+        $this->from(route('password.reset', ['token' => $token]))
+            ->post(route('password.store'), [
+                'token' => $token,
+                'email' => 'reset@example.com',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertRedirect(route('login'));
+
+        $this->assertDatabaseMissing('sessions', ['id' => 'active-session']);
+    }
+
     public function test_invalid_reset_token_is_rejected(): void
     {
         User::factory()->create(['email' => 'reset@example.com']);
@@ -106,6 +185,6 @@ class PasswordResetTest extends TestCase
                 'password_confirmation' => 'new-password',
             ])
             ->assertRedirect()
-            ->assertSessionHasErrors('email');
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
     }
 }

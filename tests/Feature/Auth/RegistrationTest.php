@@ -64,7 +64,7 @@ class RegistrationTest extends TestCase
         for ($attempt = 1; $attempt <= 5; $attempt++) {
             $this->post(route('register.store'), [
                 'name' => '',
-                'email' => 'rate@example.com',
+                'email' => "rate-{$attempt}@example.com",
                 'password' => '',
                 'password_confirmation' => '',
             ])->assertSessionHasErrors(['name', 'password']);
@@ -76,6 +76,23 @@ class RegistrationTest extends TestCase
             'password' => '',
             'password_confirmation' => '',
         ])->assertTooManyRequests();
+    }
+
+    public function test_registration_rejects_passwords_longer_than_bcrypt_limit(): void
+    {
+        $longPassword = str_repeat('a', 73);
+
+        $this->from(route('register'))
+            ->post(route('register.store'), [
+                'name' => 'Guest User',
+                'email' => 'guest@example.com',
+                'password' => $longPassword,
+                'password_confirmation' => $longPassword,
+            ])
+            ->assertRedirect(route('register'))
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('users', ['email' => 'guest@example.com']);
     }
 
     public function test_validation_messages_follow_active_locale(): void

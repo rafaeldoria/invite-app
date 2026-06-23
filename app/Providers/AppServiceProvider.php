@@ -36,9 +36,14 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('auth-registration', function (Request $request) use ($tooManyAttempts) {
-            return Limit::perMinute(5)
-                ->by($request->ip().'|'.strtolower((string) $request->input('email')))
-                ->response($tooManyAttempts);
+            return [
+                Limit::perMinute(5)
+                    ->by($request->ip())
+                    ->response($tooManyAttempts),
+                Limit::perMinute(5)
+                    ->by($request->ip().'|'.strtolower((string) $request->input('email')))
+                    ->response($tooManyAttempts),
+            ];
         });
 
         RateLimiter::for('password-reset', function (Request $request) use ($tooManyAttempts) {

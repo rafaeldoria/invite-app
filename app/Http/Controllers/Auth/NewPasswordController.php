@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
@@ -35,6 +36,8 @@ class NewPasswordController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                $this->revokeDatabaseSessions((int) $user->getAuthIdentifier());
+
                 event(new PasswordReset($user));
 
                 Log::info('security.password_reset.completed', [
@@ -49,7 +52,19 @@ class NewPasswordController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'email' => __($status),
+            'email' => __('passwords.token'),
         ]);
+    }
+
+    private function revokeDatabaseSessions(int $userId): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::connection(config('session.connection'))
+            ->table((string) config('session.table', 'sessions'))
+            ->where('user_id', $userId)
+            ->delete();
     }
 }
