@@ -22,4 +22,15 @@ final class Locale
             ? $locale
             : self::DEFAULT;
     }
+
+    public static function fromBrowserPreference(?string $locale): string
+    {
+        $normalized = str_replace('_', '-', strtolower($locale ?? ''));
+
+        return match (true) {
+            str_starts_with($normalized, 'en') => self::ENGLISH,
+            str_starts_with($normalized, 'pt') => self::DEFAULT,
+            default => self::DEFAULT,
+        };
+    }
 }

@@ -17,8 +17,8 @@ class SetLocale
         if ($preference !== null) {
             $locale = Locale::normalize($preference);
         } else {
-            $browserLocale = $request->getPreferredLanguage(['pt_BR', 'en_US']);
-            $locale = Locale::normalize(str_replace('_', '-', $browserLocale ?? ''));
+            $browserLocale = $request->getPreferredLanguage(['pt-BR', 'pt', 'en-US', 'en']);
+            $locale = Locale::fromBrowserPreference($browserLocale);
         }
 
         App::setLocale($locale);

@@ -30,11 +30,24 @@ class LocaleTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('locale', 'pt-BR'));
     }
 
-    public function test_supported_browser_preference_is_used_without_an_explicit_preference(): void
+    #[DataProvider('englishBrowserLocales')]
+    public function test_english_browser_preference_is_used_without_an_explicit_preference(string $acceptLanguage): void
     {
-        $this->withHeader('Accept-Language', 'en-US,en;q=0.9,pt-BR;q=0.8')
+        $this->withHeader('Accept-Language', $acceptLanguage)
             ->get('/')
             ->assertInertia(fn (Assert $page) => $page->where('locale', 'en-US'));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function englishBrowserLocales(): array
+    {
+        return [
+            'us english' => ['en-US,en;q=0.9,pt-BR;q=0.8'],
+            'generic english' => ['en'],
+            'regional english' => ['en-GB,en;q=0.9'],
+        ];
     }
 
     public function test_explicit_locale_is_persisted_in_session_and_cookie(): void
@@ -115,6 +128,10 @@ class LocaleTest extends TestCase
         $this->assertSame('As credenciais informadas não correspondem aos nossos registros.', __('auth.failed'));
         $this->assertSame('Redefinir senha', __('Reset Password'));
         $this->assertSame('Verificar endereço de e-mail', __('Verify Email Address'));
+        $this->assertSame(
+            'Se não conseguir clicar no botão "Redefinir senha", copie e cole a URL abaixo no seu navegador:',
+            __('If you\'re having trouble clicking the ":actionText" button, copy and paste the URL below'."\n".'into your web browser:', ['actionText' => 'Redefinir senha']),
+        );
 
         App::setLocale('en-US');
         $this->assertSame('These credentials do not match our records.', __('auth.failed'));
@@ -134,15 +151,15 @@ class LocaleTest extends TestCase
 
     public function test_locale_preference_is_rate_limited_with_a_localized_message(): void
     {
-        $this->withSession(['locale' => 'pt-BR']);
+        $this->withSession(['locale' => 'en-US']);
 
         for ($attempt = 1; $attempt <= 20; $attempt++) {
-            $this->patch(route('locale.update'), ['locale' => 'pt-BR'])->assertRedirect();
+            $this->patch(route('locale.update'), ['locale' => 'en-US'])->assertRedirect();
         }
 
-        $this->patch(route('locale.update'), ['locale' => 'pt-BR'])
+        $this->patch(route('locale.update'), ['locale' => 'en-US'])
             ->assertTooManyRequests()
-            ->assertSee('Muitas tentativas. Aguarde um momento e tente novamente.');
+            ->assertSee('Too many attempts. Please wait a moment and try again.');
     }
 
     public function test_inertia_locale_preference_throttle_renders_the_localized_error_page(): void
