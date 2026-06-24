@@ -36,6 +36,14 @@ class SecurityHardeningTest extends TestCase
         $this->assertSame('lax', strtolower($sessionCookie->getSameSite()));
     }
 
+    public function test_env_example_does_not_override_production_secure_session_default(): void
+    {
+        $this->assertStringNotContainsString(
+            'SESSION_SECURE_COOKIE=false',
+            file_get_contents(base_path('.env.example'))
+        );
+    }
+
     public function test_login_security_logs_do_not_include_secrets(): void
     {
         Log::spy();

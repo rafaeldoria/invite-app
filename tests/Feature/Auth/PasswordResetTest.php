@@ -52,6 +52,17 @@ class PasswordResetTest extends TestCase
             ->assertTooManyRequests();
     }
 
+    public function test_password_reset_request_rate_limit_uses_ip_key_when_email_changes(): void
+    {
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->post(route('password.email'), ['email' => "rate-{$attempt}@example.com"])
+                ->assertRedirect();
+        }
+
+        $this->post(route('password.email'), ['email' => 'rate@example.com'])
+            ->assertTooManyRequests();
+    }
+
     public function test_reset_password_page_is_rendered_with_token_and_email(): void
     {
         $this->get(route('password.reset', ['token' => 'reset-token', 'email' => 'guest@example.com']))
@@ -128,6 +139,28 @@ class PasswordResetTest extends TestCase
         ]);
         $token = Password::broker()->createToken($user);
         $longPassword = str_repeat('a', 73);
+
+        $this->from(route('password.reset', ['token' => $token]))
+            ->post(route('password.store'), [
+                'token' => $token,
+                'email' => 'reset@example.com',
+                'password' => $longPassword,
+                'password_confirmation' => $longPassword,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('password');
+
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    public function test_password_reset_rejects_multibyte_passwords_longer_than_bcrypt_byte_limit(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset@example.com',
+            'password' => Hash::make('old-password'),
+        ]);
+        $token = Password::broker()->createToken($user);
+        $longPassword = str_repeat("\xF0\x9F\x98\x80", 19);
 
         $this->from(route('password.reset', ['token' => $token]))
             ->post(route('password.store'), [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Rules\BcryptPassword;
 use App\Support\EmailAddress;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
@@ -28,7 +29,7 @@ class ResetPasswordRequest extends FormRequest
         return [
             'token' => ['required', 'string'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'confirmed', Password::min(8)->max(72)],
+            'password' => ['required', 'confirmed', Password::min(8), new BcryptPassword],
         ];
     }
 }

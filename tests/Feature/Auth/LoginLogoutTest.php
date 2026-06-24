@@ -98,6 +98,21 @@ class LoginLogoutTest extends TestCase
         ])->assertTooManyRequests();
     }
 
+    public function test_login_rate_limit_uses_ip_key_when_email_changes(): void
+    {
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->postJson(route('login.store'), [
+                'email' => "limited-{$attempt}@example.com",
+                'password' => 'wrong-password',
+            ])->assertUnprocessable();
+        }
+
+        $this->postJson(route('login.store'), [
+            'email' => 'limited@example.com',
+            'password' => 'wrong-password',
+        ])->assertTooManyRequests();
+    }
+
     public function test_external_intended_redirects_are_rejected_after_login(): void
     {
         $user = User::factory()->create([

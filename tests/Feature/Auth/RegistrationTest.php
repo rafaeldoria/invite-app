@@ -78,9 +78,39 @@ class RegistrationTest extends TestCase
         ])->assertTooManyRequests();
     }
 
+    public function test_malformed_email_payload_does_not_break_registration_throttle(): void
+    {
+        $this->from(route('register'))
+            ->post(route('register.store'), [
+                'name' => 'Guest User',
+                'email' => ['guest@example.com'],
+                'password' => 'password-123',
+                'password_confirmation' => 'password-123',
+            ])
+            ->assertRedirect(route('register'))
+            ->assertSessionHasErrors('email');
+    }
+
     public function test_registration_rejects_passwords_longer_than_bcrypt_limit(): void
     {
         $longPassword = str_repeat('a', 73);
+
+        $this->from(route('register'))
+            ->post(route('register.store'), [
+                'name' => 'Guest User',
+                'email' => 'guest@example.com',
+                'password' => $longPassword,
+                'password_confirmation' => $longPassword,
+            ])
+            ->assertRedirect(route('register'))
+            ->assertSessionHasErrors('password');
+
+        $this->assertDatabaseMissing('users', ['email' => 'guest@example.com']);
+    }
+
+    public function test_registration_rejects_multibyte_passwords_longer_than_bcrypt_byte_limit(): void
+    {
+        $longPassword = str_repeat("\xF0\x9F\x98\x80", 19);
 
         $this->from(route('register'))
             ->post(route('register.store'), [

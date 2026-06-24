@@ -47,7 +47,9 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
+            foreach ($this->throttleKeys() as $key) {
+                RateLimiter::hit($key);
+            }
 
             Log::warning('security.login.failed', [
                 'email_hash' => hash('sha256', (string) $this->input('email')),
@@ -57,7 +59,9 @@ class LoginRequest extends FormRequest
             $this->failAuthentication(__('auth.failed'));
         }
 
-        RateLimiter::clear($this->throttleKey());
+        foreach ($this->throttleKeys() as $key) {
+            RateLimiter::clear($key);
+        }
     }
 
     /**
@@ -65,23 +69,33 @@ class LoginRequest extends FormRequest
      */
     private function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
+        foreach ($this->throttleKeys() as $key) {
+            if (! RateLimiter::tooManyAttempts($key, 5)) {
+                continue;
+            }
+
+            event(new Lockout($this));
+
+            $seconds = RateLimiter::availableIn($key);
+
+            $this->failAuthentication(trans('auth.throttle', [
+                'seconds' => $seconds,
+                'minutes' => ceil($seconds / 60),
+            ]), 429);
         }
-
-        event(new Lockout($this));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        $this->failAuthentication(trans('auth.throttle', [
-            'seconds' => $seconds,
-            'minutes' => ceil($seconds / 60),
-        ]), 429);
     }
 
-    private function throttleKey(): string
+    /**
+     * @return array<int, string>
+     */
+    private function throttleKeys(): array
     {
-        return Str::transliterate(Str::lower((string) $this->input('email')).'|'.$this->ip());
+        $ip = (string) $this->ip();
+
+        return [
+            Str::transliterate(Str::lower((string) $this->input('email')).'|'.$ip),
+            $ip,
+        ];
     }
 
     /**
