@@ -22,6 +22,19 @@ class SecurityHardeningTest extends TestCase
             ->assertHeader('Content-Security-Policy');
     }
 
+    public function test_production_content_security_policy_excludes_development_sources(): void
+    {
+        config()->set('app.env', 'production');
+
+        $policy = (string) $this->get(route('home'))->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString("script-src 'self'", $policy);
+        $this->assertStringNotContainsString('localhost', $policy);
+        $this->assertStringNotContainsString('127.0.0.1', $policy);
+        $this->assertStringNotContainsString('0.0.0.0', $policy);
+        $this->assertStringNotContainsString("'unsafe-inline'", $policy);
+    }
+
     public function test_session_cookie_can_be_marked_secure_for_production(): void
     {
         config()->set('session.secure', true);
