@@ -126,6 +126,8 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     }
 
     function removeSelectedCover() {
+        const hadSelectedReplacement = previewUrl !== null;
+
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
             setPreviewUrl(null);
@@ -134,7 +136,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
         form.setData({
             ...form.data,
             cover_image: null,
-            remove_cover_image: currentCover !== null,
+            remove_cover_image: currentCover !== null && !hadSelectedReplacement,
         });
         setFileError(null);
 
