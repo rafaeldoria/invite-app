@@ -10,6 +10,16 @@ use Illuminate\Validation\Validator;
 
 class StoreEventRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => is_string($this->input('name')) ? trim($this->input('name')) : $this->input('name'),
+            'description' => is_string($this->input('description')) ? trim($this->input('description')) : $this->input('description'),
+            'location' => is_string($this->input('location')) ? trim($this->input('location')) : $this->input('location'),
+            'theme' => is_string($this->input('theme')) ? trim($this->input('theme')) : $this->input('theme'),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasVerifiedEmail() === true;
@@ -63,12 +73,12 @@ class StoreEventRequest extends FormRequest
         $validated = $this->validated();
 
         return [
-            'name' => trim($validated['name']),
-            'description' => trim($validated['description']),
+            'name' => $validated['name'],
+            'description' => $validated['description'],
             'starts_at' => $this->parseLocalStart()?->setTimezone('UTC'),
             'timezone' => $validated['timezone'],
-            'location' => trim($validated['location']),
-            'theme' => filled($validated['theme'] ?? null) ? trim($validated['theme']) : null,
+            'location' => $validated['location'],
+            'theme' => filled($validated['theme'] ?? null) ? $validated['theme'] : null,
         ];
     }
 

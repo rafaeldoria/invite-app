@@ -23,7 +23,6 @@ use Illuminate\Support\Str;
     'cover_image_size',
     'cover_image_width',
     'cover_image_height',
-    'share_message',
 ])]
 class Event extends Model
 {

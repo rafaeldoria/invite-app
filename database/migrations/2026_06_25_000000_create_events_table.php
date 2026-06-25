@@ -24,7 +24,6 @@ return new class extends Migration
             $table->unsignedInteger('cover_image_size')->nullable();
             $table->unsignedInteger('cover_image_width')->nullable();
             $table->unsignedInteger('cover_image_height')->nullable();
-            $table->text('share_message')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'starts_at']);

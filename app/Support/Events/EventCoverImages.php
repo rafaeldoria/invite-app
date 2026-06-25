@@ -13,7 +13,7 @@ class EventCoverImages
 {
     public function upload(UploadedFile $file): array
     {
-        $disk = 's3';
+        $disk = (string) config('events.cover_image_disk', config('filesystems.default', 'local'));
         $extension = $file->extension() ?: match ($file->getMimeType()) {
             'image/png' => 'png',
             'image/webp' => 'webp',

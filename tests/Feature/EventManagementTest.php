@@ -41,7 +41,25 @@ class EventManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Events/Index')
-                ->has('events', 0));
+                ->has('events.data', 0)
+                ->where('events.total', 0));
+    }
+
+    public function test_event_index_is_paginated(): void
+    {
+        $user = User::factory()->create();
+        Event::factory()->count(13)->for($user, 'owner')->create();
+
+        $this->actingAs($user)
+            ->get(route('events.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Events/Index')
+                ->has('events.data', 12)
+                ->where('events.current_page', 1)
+                ->where('events.last_page', 2)
+                ->where('events.per_page', 12)
+                ->where('events.total', 13));
     }
 
     public function test_verified_organizer_can_create_view_update_and_delete_an_event_without_cover(): void
@@ -150,6 +168,28 @@ class EventManagementTest extends TestCase
             ->assertSessionHasErrors(['cover_image']);
     }
 
+    public function test_validation_rejects_required_text_that_is_blank_after_trimming(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+
+        $this->actingAs($user)
+            ->post(route('events.store'), $this->validPayload([
+                'name' => '   ',
+                'description' => " \n\t ",
+                'location' => '   ',
+            ]))
+            ->assertSessionHasErrors(['name', 'description', 'location']);
+
+        $this->actingAs($user)
+            ->patch(route('events.update', $event), $this->validPayload([
+                'name' => '   ',
+                'description' => " \n\t ",
+                'location' => '   ',
+            ]))
+            ->assertSessionHasErrors(['name', 'description', 'location']);
+    }
+
     public function test_past_event_can_be_edited_without_changing_its_existing_start(): void
     {
         Carbon::setTestNow('2030-01-10 12:00:00');
@@ -179,6 +219,7 @@ class EventManagementTest extends TestCase
 
     public function test_cover_image_upload_replace_remove_and_delete_cleanup(): void
     {
+        config()->set('events.cover_image_disk', 's3');
         Storage::fake('s3');
         $user = User::factory()->create();
 
@@ -192,6 +233,7 @@ class EventManagementTest extends TestCase
         $event = Event::firstOrFail();
         $oldKey = $event->cover_image_key;
         $this->assertNotNull($oldKey);
+        $this->assertSame('s3', $event->cover_image_disk);
         Storage::disk('s3')->assertExists($oldKey);
         $this->assertSame('image/png', $event->cover_image_mime);
         $this->assertSame(1, $event->cover_image_width);
@@ -235,8 +277,28 @@ class EventManagementTest extends TestCase
         Storage::disk('s3')->assertMissing('event-covers/delete-me.jpg');
     }
 
+    public function test_cover_image_upload_uses_the_configured_disk(): void
+    {
+        config()->set('events.cover_image_disk', 'public');
+        Storage::fake('public');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('events.store'), [
+                ...$this->validPayload(),
+                'cover_image' => $this->tinyPng('cover.png'),
+            ])
+            ->assertRedirect();
+
+        $event = Event::firstOrFail();
+
+        $this->assertSame('public', $event->cover_image_disk);
+        Storage::disk('public')->assertExists($event->cover_image_key);
+    }
+
     public function test_failed_create_after_upload_cleans_new_cover(): void
     {
+        config()->set('events.cover_image_disk', 's3');
         Storage::fake('s3');
         $user = User::factory()->create();
         $publicId = '01J1EVENTFAILCLEANUP0000';

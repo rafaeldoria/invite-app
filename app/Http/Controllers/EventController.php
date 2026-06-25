@@ -23,8 +23,9 @@ class EventController extends Controller
         $events = $request->user()
             ->events()
             ->latest('starts_at')
-            ->get()
-            ->map(fn (Event $event): array => $this->summaryEvent($event));
+            ->paginate(12)
+            ->withQueryString()
+            ->through(fn (Event $event): array => $this->summaryEvent($event));
 
         return Inertia::render('Events/Index', [
             'events' => $events,
