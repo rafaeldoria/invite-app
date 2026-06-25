@@ -133,6 +133,7 @@ return [
     'multiple_of' => 'The :attribute field must be a multiple of :value.',
     'not_regex' => 'The :attribute field format is invalid.',
     'password' => [
+        'bcrypt_bytes' => 'The :attribute field must not be greater than :max bytes.',
         'letters' => 'The :attribute field must contain at least one letter.',
         'mixed' => 'The :attribute field must contain at least one uppercase and one lowercase letter.',
         'numbers' => 'The :attribute field must contain at least one number.',

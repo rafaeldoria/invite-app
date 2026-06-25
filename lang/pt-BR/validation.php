@@ -133,6 +133,7 @@ return [
     'multiple_of' => 'O campo :attribute deve ser múltiplo de :value.',
     'not_regex' => 'O formato do campo :attribute é inválido.',
     'password' => [
+        'bcrypt_bytes' => 'O campo :attribute não pode ter mais de :max bytes.',
         'letters' => 'O campo :attribute deve conter pelo menos uma letra.',
         'mixed' => 'O campo :attribute deve conter pelo menos uma letra maiúscula e uma minúscula.',
         'numbers' => 'O campo :attribute deve conter pelo menos um número.',
