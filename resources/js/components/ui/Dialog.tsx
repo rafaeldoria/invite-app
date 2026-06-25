@@ -3,7 +3,7 @@ import { Button } from './Button';
 
 const focusableSelector = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Dialog({ open, onClose, title, description, cancelLabel, confirmLabel, onConfirm, destructive = false, children }: { open: boolean; onClose: () => void; title: string; description?: string; cancelLabel: string; confirmLabel: string; onConfirm: () => void; destructive?: boolean; children?: ReactNode }) {
+export function Dialog({ open, onClose, title, description, cancelLabel, confirmLabel, onConfirm, destructive = false, closeOnConfirm = true, confirmDisabled = false, children }: { open: boolean; onClose: () => void; title: string; description?: string; cancelLabel: string; confirmLabel: string; onConfirm: () => void; destructive?: boolean; closeOnConfirm?: boolean; confirmDisabled?: boolean; children?: ReactNode }) {
     const ref = useRef<HTMLDialogElement>(null);
     const triggerRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
@@ -41,7 +41,7 @@ export function Dialog({ open, onClose, title, description, cancelLabel, confirm
                 {children}
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <Button type="button" variant="secondary" onClick={onClose}>{cancelLabel}</Button>
-                    <Button type="button" variant={destructive ? 'danger' : 'primary'} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Button>
+                    <Button type="button" variant={destructive ? 'danger' : 'primary'} disabled={confirmDisabled} onClick={() => { onConfirm(); if (closeOnConfirm) onClose(); }}>{confirmLabel}</Button>
                 </div>
             </div>
         </dialog>

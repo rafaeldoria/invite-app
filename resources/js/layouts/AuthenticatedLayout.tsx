@@ -10,7 +10,7 @@ export function AuthenticatedLayout({ children, navigation = [] }: { children: R
     const { app, flash } = usePage<SharedPageProps>().props;
     const { locale, setLocale, isChanging, t } = useLocale();
     const [menuOpen, setMenuOpen] = useState(false);
-    const items = [{ href: '/', label: t('app.home') }, ...navigation];
+    const items = [{ href: '/', label: t('app.home') }, { href: '/events', label: t('app.events') }, ...navigation];
 
     return (
         <div className="min-h-screen bg-canvas text-ink">
