@@ -146,6 +146,12 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     function submit(submitEvent: FormEvent<HTMLFormElement>) {
         submitEvent.preventDefault();
 
+        if (fileError) {
+            fileInputRef.current?.focus();
+
+            return;
+        }
+
         const options = {
             forceFormData: true,
             preserveScroll: true,
