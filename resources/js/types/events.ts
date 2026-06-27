@@ -14,6 +14,17 @@ export type EventLinks = {
     edit?: string;
     update?: string;
     destroy?: string;
+    public?: string;
+};
+
+export type EventShare = {
+    custom_message: string | null;
+    default_message: string;
+    summary: string;
+    final_message: string;
+    canonical_url: string;
+    whatsapp_url: string;
+    update_url: string;
 };
 
 export type EventSummary = {
@@ -31,6 +42,35 @@ export type EventSummary = {
 
 export type EventDetail = EventSummary & {
     description: string;
+    share: EventShare;
+};
+
+export type PublicEventCoverImage = {
+    url: string | null;
+    width: number | null;
+    height: number | null;
+};
+
+export type PublicEventDetail = {
+    name: string;
+    description: string;
+    starts_at: string;
+    timezone: string;
+    location: string;
+    theme: string | null;
+    cover_image: PublicEventCoverImage | null;
+    canonical_url: string;
+    rsvp: {
+        available: boolean;
+        url: string | null;
+    };
+};
+
+export type PublicEventMeta = {
+    title: string;
+    description: string;
+    url: string;
+    image: string | null;
 };
 
 export type PaginatedEvents = {

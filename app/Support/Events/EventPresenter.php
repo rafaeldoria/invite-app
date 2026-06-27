@@ -3,10 +3,15 @@
 namespace App\Support\Events;
 
 use App\Models\Event;
+use Illuminate\Support\Str;
 
 final class EventPresenter
 {
-    public function __construct(private readonly EventCoverImages $covers) {}
+    public function __construct(
+        private readonly EventCoverImages $covers,
+        private readonly EventPublicUrls $urls,
+        private readonly EventShareMessages $shareMessages,
+    ) {}
 
     /**
      * @return array<int, array{value: string, label: string}>
@@ -45,6 +50,7 @@ final class EventPresenter
             'links' => [
                 'show' => route('events.show', $event),
                 'edit' => route('events.edit', $event),
+                'public' => $this->urls->canonical($event),
             ],
         ];
     }
@@ -57,12 +63,48 @@ final class EventPresenter
         return [
             ...$this->summary($event),
             'description' => $event->description,
+            'share' => $this->share($event),
             'links' => [
                 'index' => route('events.index'),
                 'edit' => route('events.edit', $event),
                 'update' => route('events.update', $event),
                 'destroy' => route('events.destroy', $event),
+                'public' => $this->urls->canonical($event),
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function publicDetail(Event $event): array
+    {
+        return [
+            'name' => $event->name,
+            'description' => $event->description,
+            'starts_at' => $event->starts_at->toJSON(),
+            'timezone' => $event->timezone,
+            'location' => $event->location,
+            'theme' => $event->theme,
+            'cover_image' => $this->publicCoverImage($event),
+            'canonical_url' => $this->urls->canonical($event),
+            'rsvp' => [
+                'available' => false,
+                'url' => null,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{title: string, description: string, url: string, image: string|null}
+     */
+    public function publicMeta(Event $event): array
+    {
+        return [
+            'title' => $this->plainText($event->name, 70),
+            'description' => $this->plainText($event->description, 160),
+            'url' => $this->urls->canonical($event),
+            'image' => $this->covers->url($event),
         ];
     }
 
@@ -82,5 +124,47 @@ final class EventPresenter
             'width' => $event->cover_image_width,
             'height' => $event->cover_image_height,
         ];
+    }
+
+    /**
+     * @return array{url: string|null, width: int|null, height: int|null}|null
+     */
+    private function publicCoverImage(Event $event): ?array
+    {
+        if ($event->cover_image_key === null) {
+            return null;
+        }
+
+        return [
+            'url' => $this->covers->url($event),
+            'width' => $event->cover_image_width,
+            'height' => $event->cover_image_height,
+        ];
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function share(Event $event): array
+    {
+        $canonicalUrl = $this->urls->canonical($event);
+        $locale = app()->getLocale();
+
+        return [
+            'custom_message' => $event->share_message,
+            'default_message' => $this->shareMessages->default($event, $locale),
+            'summary' => $this->shareMessages->summary($event, $locale),
+            'final_message' => $this->shareMessages->final($event, $locale, $canonicalUrl),
+            'canonical_url' => $canonicalUrl,
+            'whatsapp_url' => 'https://wa.me/?text='.rawurlencode($this->shareMessages->final($event, $locale, $canonicalUrl)),
+            'update_url' => route('events.share-message.update', $event),
+        ];
+    }
+
+    private function plainText(?string $value, int $limit): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $value)) ?? '');
+
+        return Str::limit($text, $limit, '');
     }
 }
