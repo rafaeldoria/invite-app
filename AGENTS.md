@@ -87,6 +87,10 @@ Always implement the simplest solution that correctly solves the current problem
 
 # Laravel Practices
 
+Before developing or changing any backend code, read `backend_best_practices.md` and apply it together with this `AGENTS.md`. The backend guide is the project playbook for Actions, controller boundaries, Form Requests, policies, persistence side effects, and keeping MVP code simple.
+
+Every implementation task must start by reading this `AGENTS.md` from the repository so current project rules are loaded before inspecting or editing code.
+
 ## Controllers and Business Logic
 
 - Keep controllers small and focused on HTTP orchestration: authorize, validate, call the relevant application logic, and return a response.
