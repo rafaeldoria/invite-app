@@ -56,9 +56,23 @@ class EventSharingTest extends TestCase
                 ->missing('event.share')
                 ->missing('event.cover_image.key'));
 
-        $this->assertStringContainsString('public', $response->headers->get('Cache-Control') ?? '');
-        $this->assertStringContainsString('max-age=60', $response->headers->get('Cache-Control') ?? '');
-        $this->assertStringContainsString('stale-while-revalidate=300', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringNotContainsString('public', $response->headers->get('Cache-Control') ?? '');
+    }
+
+    public function test_authenticated_public_event_page_is_not_publicly_cacheable(): void
+    {
+        $owner = User::factory()->create();
+        $event = Event::factory()->for($owner, 'owner')->create();
+
+        $response = $this->actingAs($owner)
+            ->get(route('public.events.show', $event))
+            ->assertOk();
+
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringNotContainsString('public', $response->headers->get('Cache-Control') ?? '');
     }
 
     public function test_invalid_public_identifiers_return_not_found(): void

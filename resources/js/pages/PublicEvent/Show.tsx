@@ -10,6 +10,9 @@ import { formatDate, formatTime } from '../../utils/formatting';
 export default function Show({ event, meta }: { event: PublicEventDetail; meta: PublicEventMeta }) {
     const { locale, t } = useLocale();
     const [rsvpNotice, setRsvpNotice] = useState(false);
+    const [failedCoverImageUrl, setFailedCoverImageUrl] = useState<string | null>(null);
+    const coverImageUrl = event.cover_image?.url ?? null;
+    const showCoverImage = coverImageUrl !== null && failedCoverImageUrl !== coverImageUrl;
 
     return (
         <PublicLayout>
@@ -23,8 +26,8 @@ export default function Show({ event, meta }: { event: PublicEventDetail; meta: 
 
             <main id="main-content" className="mx-auto grid w-full max-w-6xl gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:py-10">
                 <article className="min-w-0 overflow-hidden rounded-xl bg-surface shadow-sm">
-                    {event.cover_image?.url ? (
-                        <img src={event.cover_image.url} alt={t('events.coverAlt', { name: event.name })} className="aspect-[16/10] w-full bg-canvas object-cover sm:aspect-[16/8]" />
+                    {showCoverImage ? (
+                        <img src={coverImageUrl} alt={t('events.coverAlt', { name: event.name })} className="aspect-[16/10] w-full bg-canvas object-cover sm:aspect-[16/8]" onError={() => setFailedCoverImageUrl(coverImageUrl)} />
                     ) : (
                         <div className="flex aspect-[16/10] w-full items-center justify-center bg-accent-soft px-5 text-center text-sm font-semibold text-accent-strong sm:aspect-[16/8]">
                             {t('publicEvent.noCover')}

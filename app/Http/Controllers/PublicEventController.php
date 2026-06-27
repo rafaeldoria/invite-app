@@ -17,7 +17,7 @@ class PublicEventController extends Controller
             'meta' => $events->publicMeta($event),
         ])->toResponse($request);
 
-        $response->headers->set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
     }
