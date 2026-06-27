@@ -5,7 +5,7 @@
     "scripts": {
         "build": "tsc --noEmit && vite build",
         "dev": "vite",
-        "test:frontend": "node --experimental-strip-types --test resources/js/locales/catalogs.test.mjs resources/js/locales/translations.test.mjs resources/js/utils/formatting.test.mjs"
+        "test:frontend": "node --experimental-strip-types --test resources/js/locales/catalogs.test.mjs resources/js/locales/translations.test.mjs resources/js/utils/formatting.test.mjs resources/js/utils/share-message.test.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

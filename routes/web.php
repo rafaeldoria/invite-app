@@ -8,7 +8,9 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventShareMessageController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PublicEventController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -19,6 +21,9 @@ Route::get('/', function () {
 Route::patch('/locale', [LocaleController::class, 'update'])
     ->middleware('throttle:locale-preference')
     ->name('locale.update');
+
+Route::get('/e/{event:public_id}', PublicEventController::class)
+    ->name('public.events.show');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -51,5 +56,8 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::patch('/events/{event}/share-message', [EventShareMessageController::class, 'update'])
+        ->name('events.share-message.update');
+
     Route::resource('events', EventController::class);
 });

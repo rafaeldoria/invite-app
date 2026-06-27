@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
     'timezone',
     'location',
     'theme',
+    'share_message',
     'cover_image_disk',
     'cover_image_key',
     'cover_image_mime',

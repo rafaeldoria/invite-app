@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { Alert } from '../../components/feedback/Alert';
+import { SharePanel } from '../../components/events/SharePanel';
 import { Button, ButtonLink } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Dialog } from '../../components/ui/Dialog';
@@ -67,9 +68,12 @@ export default function Show({ event }: { event: EventDetail }) {
                     </article>
 
                     <aside className="space-y-4">
+                        <SharePanel share={event.share} />
+
                         <Card>
                             <h2 className="text-base font-semibold text-ink">{t('events.show.actions')}</h2>
                             <div className="mt-4 grid gap-3">
+                                <ButtonLink href={event.links.public ?? '#'} variant="secondary">{t('events.show.publicPage')}</ButtonLink>
                                 <ButtonLink href={event.links.edit ?? '#'}>{t('events.show.edit')}</ButtonLink>
                                 <Button type="button" variant="danger" onClick={() => setDeleteOpen(true)}>{t('events.show.delete')}</Button>
                             </div>
