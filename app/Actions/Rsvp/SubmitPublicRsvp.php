@@ -18,6 +18,11 @@ final class SubmitPublicRsvp
         return DB::transaction(function () use ($event, $responseToken, $data): Guest {
             $hash = $this->hashToken($responseToken);
 
+            Event::query()
+                ->whereKey($event->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $guest = $event->guests()
                 ->where('response_token_hash', $hash)
                 ->lockForUpdate()
@@ -32,7 +37,6 @@ final class SubmitPublicRsvp
             }
 
             $guest->update([
-                'name' => $data['name'],
                 ...$this->responseAttributes($data),
             ]);
 

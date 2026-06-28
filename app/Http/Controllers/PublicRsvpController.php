@@ -27,6 +27,7 @@ class PublicRsvpController extends Controller
             submitUrl: route('public.rsvp.store', $event),
             method: 'post',
             responseToken: Str::random(64),
+            eventUrl: route('public.events.show', $event),
         ))->toResponse($request));
     }
 

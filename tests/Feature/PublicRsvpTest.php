@@ -39,6 +39,7 @@ class PublicRsvpTest extends TestCase
                 ->where('rsvp.name_locked', false)
                 ->where('rsvp.submit_url', route('public.rsvp.store', $event))
                 ->where('rsvp.method', 'post')
+                ->where('rsvp.event_url', route('public.events.show', $event))
                 ->where('rsvp.receipt', null)
                 ->missing('guest')
                 ->missing('guests'));
@@ -114,6 +115,34 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(0, $guest->child_companions);
     }
 
+    public function test_general_replay_does_not_rename_existing_guest(): void
+    {
+        $event = Event::factory()->create();
+        $token = Str::random(64);
+
+        $this->post(route('public.rsvp.store', $event), [
+            'name' => 'Original Guest',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 1,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertRedirect();
+
+        $this->post(route('public.rsvp.store', $event), [
+            'name' => 'Renamed Guest',
+            'attendance' => GuestStatus::Declined->value,
+            'adult_companions' => 0,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertRedirect();
+
+        $guest = Guest::query()->firstOrFail();
+
+        $this->assertSame('Original Guest', $guest->name);
+        $this->assertSame(GuestStatus::Declined, $guest->status);
+        $this->assertSame(1, Guest::query()->count());
+    }
+
     public function test_individual_invitation_updates_existing_guest_without_creating_another(): void
     {
         $event = Event::factory()->create();
@@ -132,6 +161,7 @@ class PublicRsvpTest extends TestCase
                 ->component('Rsvp/Form')
                 ->where('rsvp.mode', 'invitation')
                 ->where('rsvp.name_locked', true)
+                ->where('rsvp.event_url', route('public.invitations.show', [$event, $guest->invitation_token]))
                 ->where('rsvp.guest_name', 'Invited Guest')
                 ->where('rsvp.receipt', null)
                 ->missing('guest.id')
@@ -300,6 +330,43 @@ class PublicRsvpTest extends TestCase
         $this->from(route('public.rsvp.create', $event))
             ->post(route('public.rsvp.store', $event), [
                 'name' => 'Another Household',
+                'attendance' => GuestStatus::Confirmed->value,
+                'adult_companions' => 0,
+                'child_companions' => 0,
+                'response_token' => Str::random(64),
+            ])->assertRedirect();
+    }
+
+    public function test_public_rsvp_event_rate_limit_is_scoped_per_event(): void
+    {
+        config()->set('app.env', 'production');
+
+        $event = Event::factory()->create();
+        $otherEvent = Event::factory()->create();
+
+        for ($attempt = 0; $attempt < 60; $attempt++) {
+            $this->from(route('public.rsvp.create', $event))
+                ->post(route('public.rsvp.store', $event), [
+                    'name' => 'Limited Guest '.$attempt,
+                    'attendance' => GuestStatus::Confirmed->value,
+                    'adult_companions' => 0,
+                    'child_companions' => 0,
+                    'response_token' => Str::random(64),
+                ])->assertRedirect();
+        }
+
+        $this->from(route('public.rsvp.create', $event))
+            ->post(route('public.rsvp.store', $event), [
+                'name' => 'Blocked Guest',
+                'attendance' => GuestStatus::Confirmed->value,
+                'adult_companions' => 0,
+                'child_companions' => 0,
+                'response_token' => Str::random(64),
+            ])->assertTooManyRequests();
+
+        $this->from(route('public.rsvp.create', $otherEvent))
+            ->post(route('public.rsvp.store', $otherEvent), [
+                'name' => 'Other Event Guest',
                 'attendance' => GuestStatus::Confirmed->value,
                 'adult_companions' => 0,
                 'child_companions' => 0,

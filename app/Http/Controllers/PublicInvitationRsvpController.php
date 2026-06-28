@@ -35,6 +35,7 @@ class PublicInvitationRsvpController extends Controller
             method: 'patch',
             guest: $guest,
             updateUrl: route('public.invitations.rsvp.edit', [$event, $token]),
+            eventUrl: route('public.invitations.show', [$event, $token]),
         ))->toResponse($request));
     }
 

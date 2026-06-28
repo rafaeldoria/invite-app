@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Event;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -51,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('public-rsvp', function (Request $request) use ($tooManyAttempts) {
             $event = $request->route('event');
-            $eventKey = is_object($event) && isset($event->public_id) ? $event->public_id : 'unknown-event';
+            $eventKey = $event instanceof Event ? $event->public_id : (string) ($event ?? 'unknown-event');
             $capability = $request->route('token') ?? $request->input('response_token') ?? 'new-response';
 
             return [

@@ -74,9 +74,11 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
             <main id="main-content" className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:py-10">
                 <section className="min-w-0 rounded-xl bg-surface p-5 shadow-sm sm:p-7" aria-labelledby="rsvp-form-title">
                     <div className="space-y-2">
-                        <Link href={event.canonical_url} className="inline-flex rounded-md text-sm font-semibold text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
-                            {t('rsvp.form.backToEvent')}
-                        </Link>
+                        {rsvp.event_url ? (
+                            <Link href={rsvp.event_url} className="inline-flex rounded-md text-sm font-semibold text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
+                                {t('rsvp.form.backToEvent')}
+                            </Link>
+                        ) : null}
                         <h1 id="rsvp-form-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">{title}</h1>
                         <p className="max-w-2xl text-sm leading-6 text-muted">{t('rsvp.form.description')}</p>
                     </div>

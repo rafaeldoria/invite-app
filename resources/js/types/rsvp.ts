@@ -25,6 +25,7 @@ export type RsvpFormProps = {
         mode: RsvpMode;
         submit_url: string;
         method: 'post' | 'patch';
+        event_url: string | null;
         response_token: string | null;
         guest_name: string | null;
         name_locked: boolean;

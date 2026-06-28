@@ -24,6 +24,7 @@ final class RsvpPresenter
         ?Guest $guest = null,
         ?string $responseToken = null,
         ?string $updateUrl = null,
+        ?string $eventUrl = null,
     ): array {
         return [
             'event' => $this->events->publicDetail($event),
@@ -31,6 +32,7 @@ final class RsvpPresenter
                 'mode' => $mode,
                 'submit_url' => $submitUrl,
                 'method' => $method,
+                'event_url' => $eventUrl,
                 'response_token' => $responseToken,
                 'guest_name' => $guest?->name,
                 'name_locked' => $guest !== null,
