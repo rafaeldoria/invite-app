@@ -163,6 +163,7 @@ class GuestManagementTest extends TestCase
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
         $guest = Guest::factory()->for($event)->confirmed(3, 2)->create();
+        $originalRespondedAt = $guest->responded_at;
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
@@ -177,6 +178,7 @@ class GuestManagementTest extends TestCase
         $this->assertSame(GuestStatus::Declined, $guest->status);
         $this->assertSame(0, $guest->adult_companions);
         $this->assertSame(0, $guest->child_companions);
+        $this->assertTrue($originalRespondedAt->equalTo($guest->responded_at));
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
@@ -192,6 +194,32 @@ class GuestManagementTest extends TestCase
         $this->assertSame(0, $guest->adult_companions);
         $this->assertSame(0, $guest->child_companions);
         $this->assertNull($guest->responded_at);
+    }
+
+    public function test_guest_edits_preserve_existing_response_timestamp(): void
+    {
+        $respondedAt = now()->subDays(2)->startOfSecond();
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->confirmed(1)->create([
+            'responded_at' => $respondedAt,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('events.guests.update', [$event, $guest]), [
+                'name' => 'Corrected Name',
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 2,
+                'child_companions' => 1,
+            ])
+            ->assertRedirect();
+
+        $guest->refresh();
+
+        $this->assertSame('Corrected Name', $guest->name);
+        $this->assertSame(2, $guest->adult_companions);
+        $this->assertSame(1, $guest->child_companions);
+        $this->assertTrue($respondedAt->equalTo($guest->responded_at));
     }
 
     public function test_pagination_sorting_filters_and_invalid_filters(): void
