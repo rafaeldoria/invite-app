@@ -15,6 +15,7 @@ export type EventLinks = {
     update?: string;
     destroy?: string;
     public?: string;
+    guests?: string;
 };
 
 export type EventShare = {

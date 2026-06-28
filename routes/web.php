@@ -9,8 +9,10 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventShareMessageController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicEventController;
+use App\Http\Controllers\PublicInvitationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -24,6 +26,9 @@ Route::patch('/locale', [LocaleController::class, 'update'])
 
 Route::get('/e/{event:public_id}', PublicEventController::class)
     ->name('public.events.show');
+
+Route::get('/e/{event:public_id}/invitation/{token}', PublicInvitationController::class)
+    ->name('public.invitations.show');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
@@ -58,6 +63,10 @@ Route::middleware('auth')->group(function (): void {
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::patch('/events/{event}/share-message', [EventShareMessageController::class, 'update'])
         ->name('events.share-message.update');
+
+    Route::resource('events.guests', GuestController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->scoped();
 
     Route::resource('events', EventController::class);
 });

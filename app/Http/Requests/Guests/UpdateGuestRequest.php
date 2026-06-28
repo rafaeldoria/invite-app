@@ -1,0 +1,80 @@
+<?php
+
+namespace App\Http\Requests\Guests;
+
+use App\Enums\GuestStatus;
+use App\Models\Event;
+use App\Models\Guest;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateGuestRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        $event = $this->route('event');
+        $guest = $this->route('guest');
+
+        return $event instanceof Event
+            && $guest instanceof Guest
+            && $guest->event_id === $event->id
+            && $this->user()?->can('update', $event);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => is_string($this->input('name')) ? trim($this->input('name')) : $this->input('name'),
+            'adult_companions' => $this->input('adult_companions', 0),
+            'child_companions' => $this->input('child_companions', 0),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'min:1', 'max:120'],
+            'status' => ['required', Rule::enum(GuestStatus::class)],
+            'adult_companions' => ['required', 'integer', 'min:0', 'max:20'],
+            'child_companions' => ['required', 'integer', 'min:0', 'max:20'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function guestAttributes(): array
+    {
+        $validated = $this->validated();
+        $status = GuestStatus::from($validated['status']);
+        $guest = $this->route('guest');
+        $respondedAt = null;
+
+        if ($status !== GuestStatus::Pending) {
+            $respondedAt = now();
+
+            if ($guest instanceof Guest && $guest->status !== GuestStatus::Pending && $guest->responded_at !== null) {
+                $respondedAt = $guest->responded_at;
+            }
+        }
+
+        return [
+            'name' => $validated['name'],
+            'status' => $status,
+            'adult_companions' => $status->allowsCompanions() ? (int) $validated['adult_companions'] : 0,
+            'child_companions' => $status->allowsCompanions() ? (int) $validated['child_companions'] : 0,
+            'responded_at' => $respondedAt,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return __('guests.attributes');
+    }
+}

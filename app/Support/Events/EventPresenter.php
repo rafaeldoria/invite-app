@@ -70,6 +70,7 @@ final class EventPresenter
                 'update' => route('events.update', $event),
                 'destroy' => route('events.destroy', $event),
                 'public' => $this->urls->canonical($event),
+                'guests' => route('events.guests.index', $event),
             ],
         ];
     }
