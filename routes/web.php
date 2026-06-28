@@ -65,7 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('events.share-message.update');
 
     Route::resource('events.guests', GuestController::class)
-        ->only(['index', 'store', 'update', 'destroy']);
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->scoped();
 
     Route::resource('events', EventController::class);
 });

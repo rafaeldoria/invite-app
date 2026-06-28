@@ -357,8 +357,12 @@ function companionSummary(guest: GuestListItem, t: ReturnType<typeof useLocale>[
 
 async function copyText(value: string): Promise<void> {
     if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value);
-        return;
+        try {
+            await navigator.clipboard.writeText(value);
+            return;
+        } catch {
+            // Continue to the textarea fallback for browsers that expose Clipboard but reject it.
+        }
     }
 
     const textarea = document.createElement('textarea');

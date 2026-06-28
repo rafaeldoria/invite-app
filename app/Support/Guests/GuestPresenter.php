@@ -5,9 +5,14 @@ namespace App\Support\Guests;
 use App\Enums\GuestStatus;
 use App\Models\Event;
 use App\Models\Guest;
+use App\Support\Events\EventPublicUrls;
 
 final class GuestPresenter
 {
+    public function __construct(
+        private readonly EventPublicUrls $urls,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -19,10 +24,7 @@ final class GuestPresenter
             'adult_companions' => $guest->adult_companions,
             'child_companions' => $guest->child_companions,
             'companion_count' => $guest->companionCount(),
-            'invitation_url' => route('public.invitations.show', [
-                'event' => $event,
-                'token' => $guest->invitation_token,
-            ]),
+            'invitation_url' => $this->urls->invitation($event, $guest),
             'links' => [
                 'update' => route('events.guests.update', [$event, $guest]),
                 'destroy' => route('events.guests.destroy', [$event, $guest]),

@@ -116,7 +116,7 @@ class GuestManagementTest extends TestCase
 
         $this->actingAs($owner)
             ->patch(route('events.guests.update', [$otherEvent, $guest]), $this->validPayload())
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->actingAs($owner)
             ->delete(route('events.guests.destroy', [$otherEvent, $guest]))
@@ -244,7 +244,7 @@ class GuestManagementTest extends TestCase
         $guest = $guests->first();
         $url = route('public.invitations.show', [$event, $guest->invitation_token]);
 
-        $this->get($url)
+        $response = $this->get($url)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('PublicEvent/Show')
@@ -254,9 +254,32 @@ class GuestManagementTest extends TestCase
                 ->missing('event.owner')
                 ->missing('event.user_id'));
 
+        $this->assertStringContainsString('private', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control') ?? '');
+        $this->assertStringNotContainsString('public', $response->headers->get('Cache-Control') ?? '');
+
         $guest->delete();
 
         $this->get($url)->assertNotFound();
+    }
+
+    public function test_invitation_urls_use_trusted_app_url_not_request_host(): void
+    {
+        config()->set('app.url', 'https://events.example.com');
+
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->create(['name' => 'Trusted Link Guest']);
+
+        $this->actingAs($user)
+            ->withHeader('Host', 'attacker.test')
+            ->get(route('events.guests.index', $event))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where(
+                    'guests.data.0.invitation_url',
+                    'https://events.example.com/e/'.$event->public_id.'/invitation/'.$guest->invitation_token,
+                ));
     }
 
     public function test_guest_index_query_count_is_bounded_for_a_page(): void
