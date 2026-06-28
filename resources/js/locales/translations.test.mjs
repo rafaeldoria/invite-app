@@ -14,4 +14,6 @@ test('limited guest and companion plural forms work in both locales', () => {
     assert.equal(translatePlural('pt-BR', 'companions.count', 0), '0 acompanhantes');
     assert.equal(translatePlural('pt-BR', 'companions.count', 1), '1 acompanhante');
     assert.equal(translatePlural('pt-BR', 'companions.count', 2), '2 acompanhantes');
+    assert.equal(translatePlural('en-US', 'adultCompanions.count', 2), '2 adults');
+    assert.equal(translatePlural('en-US', 'childCompanions.count', 1), '1 child');
 });
