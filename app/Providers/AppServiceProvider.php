@@ -48,6 +48,21 @@ class AppServiceProvider extends ServiceProvider
                 ->by(($request->user()?->id ?? $request->ip()).'|'.$request->ip())
                 ->response($tooManyAttempts);
         });
+
+        RateLimiter::for('public-rsvp', function (Request $request) use ($tooManyAttempts) {
+            $event = $request->route('event');
+            $eventKey = is_object($event) && isset($event->public_id) ? $event->public_id : 'unknown-event';
+            $capability = $request->route('token') ?? $request->input('response_token') ?? 'new-response';
+
+            return [
+                Limit::perMinute(60)
+                    ->by($eventKey.'|'.$request->ip())
+                    ->response($tooManyAttempts),
+                Limit::perMinute(12)
+                    ->by($eventKey.'|'.$request->ip().'|'.hash('sha256', (string) $capability))
+                    ->response($tooManyAttempts),
+            ];
+        });
     }
 
     /**

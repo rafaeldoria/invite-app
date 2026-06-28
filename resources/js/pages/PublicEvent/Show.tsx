@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import { Alert } from '../../components/feedback/Alert';
-import { Button } from '../../components/ui/Button';
+import { ButtonLink } from '../../components/ui/Button';
 import { PublicLayout } from '../../layouts/PublicLayout';
 import { useLocale } from '../../hooks/use-locale';
 import type { PublicEventDetail, PublicEventMeta } from '../../types/events';
@@ -9,7 +9,6 @@ import { formatDate, formatTime } from '../../utils/formatting';
 
 export default function Show({ event, meta }: { event: PublicEventDetail; meta: PublicEventMeta }) {
     const { locale, t } = useLocale();
-    const [rsvpNotice, setRsvpNotice] = useState(false);
     const [failedCoverImageUrl, setFailedCoverImageUrl] = useState<string | null>(null);
     const coverImageUrl = event.cover_image?.url ?? null;
     const showCoverImage = coverImageUrl !== null && failedCoverImageUrl !== coverImageUrl;
@@ -63,14 +62,15 @@ export default function Show({ event, meta }: { event: PublicEventDetail; meta: 
                     <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="public-event-rsvp-title">
                         <h2 id="public-event-rsvp-title" className="text-lg font-semibold text-ink">{t('publicEvent.rsvpTitle')}</h2>
                         <p className="mt-2 text-sm leading-6 text-muted">{t('publicEvent.rsvpDescription')}</p>
-                        <Button type="button" className="mt-4 w-full" onClick={() => setRsvpNotice(true)}>
-                            {t('publicEvent.rsvpAction')}
-                        </Button>
-                        {rsvpNotice ? (
+                        {event.rsvp.available && event.rsvp.url ? (
+                            <ButtonLink href={event.rsvp.url} className="mt-4 w-full">
+                                {t('publicEvent.rsvpAction')}
+                            </ButtonLink>
+                        ) : (
                             <div className="mt-4">
                                 <Alert title={t('publicEvent.rsvpPendingTitle')} tone="info">{t('publicEvent.rsvpPendingDescription')}</Alert>
                             </div>
-                        ) : null}
+                        )}
                     </section>
 
                     <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="public-event-share-title">

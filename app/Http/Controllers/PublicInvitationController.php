@@ -19,7 +19,7 @@ class PublicInvitationController extends Controller
         abort_unless($event->guests()->where('invitation_token', $token)->exists(), 404);
 
         $response = Inertia::render('PublicEvent/Show', [
-            'event' => $this->events->publicDetail($event),
+            'event' => $this->events->publicDetail($event, route('public.invitations.rsvp.edit', [$event, $token])),
             'meta' => $this->events->publicMeta($event),
         ])->withViewData([
             'meta' => $this->events->publicMeta($event),
