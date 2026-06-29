@@ -13,6 +13,9 @@ use App\Http\Controllers\GuestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicEventController;
 use App\Http\Controllers\PublicInvitationController;
+use App\Http\Controllers\PublicInvitationRsvpController;
+use App\Http\Controllers\PublicRsvpController;
+use App\Http\Controllers\PublicRsvpManagementController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,8 +30,24 @@ Route::patch('/locale', [LocaleController::class, 'update'])
 Route::get('/e/{event:public_id}', PublicEventController::class)
     ->name('public.events.show');
 
+Route::get('/e/{event:public_id}/rsvp', [PublicRsvpController::class, 'create'])
+    ->name('public.rsvp.create');
+Route::post('/e/{event:public_id}/rsvp', [PublicRsvpController::class, 'store'])
+    ->middleware('throttle:public-rsvp')
+    ->name('public.rsvp.store');
+Route::get('/e/{event:public_id}/rsvp/{token}', [PublicRsvpManagementController::class, 'show'])
+    ->name('public.rsvp.show');
+Route::patch('/e/{event:public_id}/rsvp/{token}', [PublicRsvpManagementController::class, 'update'])
+    ->middleware('throttle:public-rsvp')
+    ->name('public.rsvp.update');
+
 Route::get('/e/{event:public_id}/invitation/{token}', PublicInvitationController::class)
     ->name('public.invitations.show');
+Route::get('/e/{event:public_id}/invitation/{token}/rsvp', [PublicInvitationRsvpController::class, 'edit'])
+    ->name('public.invitations.rsvp.edit');
+Route::patch('/e/{event:public_id}/invitation/{token}/rsvp', [PublicInvitationRsvpController::class, 'update'])
+    ->middleware('throttle:public-rsvp')
+    ->name('public.invitations.rsvp.update');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');

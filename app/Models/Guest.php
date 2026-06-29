@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
     'status',
     'adult_companions',
     'child_companions',
+    'response_token_hash',
     'responded_at',
 ])]
 #[Hidden([

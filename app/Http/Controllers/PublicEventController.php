@@ -13,7 +13,7 @@ class PublicEventController extends Controller
     public function __invoke(Request $request, Event $event, EventPresenter $events): Response
     {
         $response = Inertia::render('PublicEvent/Show', [
-            'event' => $events->publicDetail($event),
+            'event' => $events->publicDetail($event, route('public.rsvp.create', $event)),
             'meta' => $events->publicMeta($event),
         ])->toResponse($request);
 

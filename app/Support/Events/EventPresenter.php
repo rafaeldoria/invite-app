@@ -78,7 +78,7 @@ final class EventPresenter
     /**
      * @return array<string, mixed>
      */
-    public function publicDetail(Event $event): array
+    public function publicDetail(Event $event, ?string $rsvpUrl = null): array
     {
         return [
             'name' => $event->name,
@@ -90,8 +90,8 @@ final class EventPresenter
             'cover_image' => $this->publicCoverImage($event),
             'canonical_url' => $this->urls->canonical($event),
             'rsvp' => [
-                'available' => false,
-                'url' => null,
+                'available' => $rsvpUrl !== null,
+                'url' => $rsvpUrl,
             ],
         ];
     }
