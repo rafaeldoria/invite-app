@@ -11,6 +11,7 @@ export type EventLinks = {
     create?: string;
     store?: string;
     show?: string;
+    dashboard?: string;
     edit?: string;
     update?: string;
     destroy?: string;
