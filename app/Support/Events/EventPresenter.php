@@ -66,6 +66,7 @@ final class EventPresenter
             'share' => $this->share($event),
             'links' => [
                 'index' => route('events.index'),
+                'dashboard' => route('events.dashboard', $event),
                 'edit' => route('events.edit', $event),
                 'update' => route('events.update', $event),
                 'destroy' => route('events.destroy', $event),

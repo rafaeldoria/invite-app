@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventDashboardController;
 use App\Http\Controllers\EventShareMessageController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\LocaleController;
@@ -80,6 +81,9 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::get('/events/{event}/dashboard', EventDashboardController::class)
+        ->name('events.dashboard');
+
     Route::patch('/events/{event}/share-message', [EventShareMessageController::class, 'update'])
         ->name('events.share-message.update');
 
