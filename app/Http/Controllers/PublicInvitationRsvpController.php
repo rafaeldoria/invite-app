@@ -39,13 +39,16 @@ class PublicInvitationRsvpController extends Controller
         ))->toResponse($request));
     }
 
-    public function update(SubmitRsvpRequest $request, Event $event, string $token): RedirectResponse
+    public function update(Event $event, string $token): RedirectResponse
     {
         try {
-            $this->submitRsvp->updateFromInvitationToken($event, $token, $request->rsvpData());
+            $this->submitRsvp->guestForInvitationToken($event, $token);
         } catch (ModelNotFoundException) {
             $this->abortInvalidCapability($event, 'update');
         }
+
+        $validated = $this->validatedRsvpRequest();
+        $this->submitRsvp->updateFromInvitationToken($event, $token, $validated->rsvpData());
 
         return redirect()->route('public.invitations.rsvp.edit', [$event, $token]);
     }
@@ -65,5 +68,13 @@ class PublicInvitationRsvpController extends Controller
         ]);
 
         abort(404);
+    }
+
+    private function validatedRsvpRequest(): SubmitRsvpRequest
+    {
+        /** @var SubmitRsvpRequest $request */
+        $request = app(SubmitRsvpRequest::class);
+
+        return $request;
     }
 }

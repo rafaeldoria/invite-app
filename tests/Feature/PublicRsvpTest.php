@@ -267,10 +267,15 @@ class PublicRsvpTest extends TestCase
 
         $this->get(route('public.rsvp.show', [$event, 'tampered-'.$token]))->assertNotFound();
         $this->get(route('public.rsvp.show', [$otherEvent, $token]))->assertNotFound();
+        $this->patch(route('public.rsvp.update', [$event, 'tampered-'.$token]), [])->assertNotFound();
+        $this->patch(route('public.rsvp.update', [$otherEvent, $token]), [
+            'attendance' => 'pending',
+        ])->assertNotFound();
 
         $guest = Guest::factory()->for($event)->create();
 
         $this->get(route('public.invitations.rsvp.edit', [$otherEvent, $guest->invitation_token]))->assertNotFound();
+        $this->patch(route('public.invitations.rsvp.update', [$otherEvent, $guest->invitation_token]), [])->assertNotFound();
         $this->patch(route('public.invitations.rsvp.update', [$otherEvent, $guest->invitation_token]), [
             'attendance' => GuestStatus::Declined->value,
             'adult_companions' => 0,

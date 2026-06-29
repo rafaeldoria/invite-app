@@ -64,10 +64,7 @@ final class SubmitPublicRsvp
     public function updateFromInvitationToken(Event $event, string $invitationToken, array $data): Guest
     {
         return DB::transaction(function () use ($event, $invitationToken, $data): Guest {
-            $guest = $event->guests()
-                ->where('invitation_token', $invitationToken)
-                ->lockForUpdate()
-                ->firstOrFail();
+            $guest = $this->guestForInvitationToken($event, $invitationToken, true);
 
             $guest->update($this->responseAttributes($data));
 
@@ -78,6 +75,17 @@ final class SubmitPublicRsvp
     public function guestForManagementToken(Event $event, string $responseToken, bool $lock = false): Guest
     {
         $query = $event->guests()->where('response_token_hash', $this->hashToken($responseToken));
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->firstOrFail();
+    }
+
+    public function guestForInvitationToken(Event $event, string $invitationToken, bool $lock = false): Guest
+    {
+        $query = $event->guests()->where('invitation_token', $invitationToken);
 
         if ($lock) {
             $query->lockForUpdate();

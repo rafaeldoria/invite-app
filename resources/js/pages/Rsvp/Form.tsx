@@ -194,7 +194,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
 
 function AttendanceOption({ id, name, checked, title, description, onChange }: { id: string; name: string; checked: boolean; title: string; description: string; onChange: () => void }) {
     return (
-        <label htmlFor={id} className={`block min-h-24 cursor-pointer rounded-lg border p-4 transition-colors ${checked ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong'}`}>
+        <label htmlFor={id} className={`block min-h-24 cursor-pointer rounded-lg border p-4 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${checked ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong'}`}>
             <input id={id} type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
             <span className="block text-base font-semibold text-ink">{title}</span>
             <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>

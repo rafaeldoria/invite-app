@@ -38,13 +38,16 @@ class PublicRsvpManagementController extends Controller
         ))->toResponse($request));
     }
 
-    public function update(SubmitRsvpRequest $request, Event $event, string $token): RedirectResponse
+    public function update(Event $event, string $token): RedirectResponse
     {
         try {
-            $this->submitRsvp->updateFromManagementToken($event, $token, $request->rsvpData());
+            $this->submitRsvp->guestForManagementToken($event, $token);
         } catch (ModelNotFoundException) {
             $this->abortInvalidCapability($event, 'update');
         }
+
+        $validated = $this->validatedRsvpRequest();
+        $this->submitRsvp->updateFromManagementToken($event, $token, $validated->rsvpData());
 
         return redirect()->route('public.rsvp.show', [$event, $token]);
     }
@@ -64,5 +67,13 @@ class PublicRsvpManagementController extends Controller
         ]);
 
         abort(404);
+    }
+
+    private function validatedRsvpRequest(): SubmitRsvpRequest
+    {
+        /** @var SubmitRsvpRequest $request */
+        $request = app(SubmitRsvpRequest::class);
+
+        return $request;
     }
 }
