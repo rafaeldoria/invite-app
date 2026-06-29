@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\Guest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -166,6 +167,46 @@ class PublicRsvpTest extends TestCase
         ])->assertNotFound();
 
         $this->assertSame(1, Guest::query()->count());
+    }
+
+    public function test_general_cross_event_token_race_returns_not_found_without_mutation(): void
+    {
+        $event = Event::factory()->create();
+        $otherEvent = Event::factory()->create();
+        $token = Str::random(64);
+        $hash = hash('sha256', $token);
+        $insertedConcurrentGuest = false;
+
+        Guest::creating(function (Guest $guest) use ($event, $hash, &$insertedConcurrentGuest): void {
+            if ($insertedConcurrentGuest || $guest->name !== 'Race Guest') {
+                return;
+            }
+
+            $insertedConcurrentGuest = true;
+
+            DB::table('guests')->insert([
+                'event_id' => $event->id,
+                'name' => 'Concurrent Guest',
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 0,
+                'child_companions' => 0,
+                'invitation_token' => Str::random(48),
+                'response_token_hash' => $hash,
+                'responded_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        $this->post(route('public.rsvp.store', $otherEvent), [
+            'name' => 'Race Guest',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 0,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertNotFound();
+
+        $this->assertSame(0, Guest::query()->count());
     }
 
     public function test_individual_invitation_updates_existing_guest_without_creating_another(): void

@@ -6,6 +6,7 @@ use App\Enums\GuestStatus;
 use App\Models\Event;
 use App\Models\Guest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,11 +35,19 @@ final class SubmitPublicRsvp
                     throw new ModelNotFoundException;
                 }
 
-                return $event->guests()->create([
-                    'name' => $data['name'],
-                    'response_token_hash' => $hash,
-                    ...$this->responseAttributes($data),
-                ]);
+                try {
+                    return $event->guests()->create([
+                        'name' => $data['name'],
+                        'response_token_hash' => $hash,
+                        ...$this->responseAttributes($data),
+                    ]);
+                } catch (QueryException $exception) {
+                    if ($this->isResponseTokenHashConflict($exception)) {
+                        throw new ModelNotFoundException;
+                    }
+
+                    throw $exception;
+                }
             }
 
             $guest->update([
@@ -102,6 +111,17 @@ final class SubmitPublicRsvp
     public function hashToken(string $token): string
     {
         return hash('sha256', $token);
+    }
+
+    private function isResponseTokenHashConflict(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+
+        if (! in_array($sqlState, ['23000', '23505'], true)) {
+            return false;
+        }
+
+        return str_contains($exception->getMessage(), 'response_token_hash');
     }
 
     /**

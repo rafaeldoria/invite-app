@@ -196,8 +196,15 @@ function AttendanceOption({ id, name, checked, title, description, onChange }: {
     return (
         <label htmlFor={id} className={`block min-h-24 cursor-pointer rounded-lg border p-4 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${checked ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong'}`}>
             <input id={id} type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
-            <span className="block text-base font-semibold text-ink">{title}</span>
-            <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
+            <span className="flex items-start gap-3">
+                <span aria-hidden="true" className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border bg-surface ${checked ? 'border-accent' : 'border-border-strong'}`}>
+                    {checked ? <span className="size-2.5 rounded-full bg-ink" /> : null}
+                </span>
+                <span className="min-w-0">
+                    <span className="block text-base font-semibold text-ink">{title}</span>
+                    <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
+                </span>
+            </span>
         </label>
     );
 }
