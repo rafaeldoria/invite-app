@@ -53,14 +53,15 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-rsvp', function (Request $request) use ($tooManyAttempts) {
             $event = $request->route('event');
             $eventKey = $event instanceof Event ? $event->public_id : (string) ($event ?? 'unknown-event');
-            $capability = $request->route('token') ?? $request->input('response_token') ?? 'new-response';
+            $capability = $request->route('token') ?? $request->input('response_token');
+            $capabilityKey = is_scalar($capability) ? (string) $capability : 'new-response';
 
             return [
                 Limit::perMinute(60)
                     ->by($eventKey.'|'.$request->ip())
                     ->response($tooManyAttempts),
                 Limit::perMinute(12)
-                    ->by($eventKey.'|'.$request->ip().'|'.hash('sha256', (string) $capability))
+                    ->by($eventKey.'|'.$request->ip().'|'.hash('sha256', $capabilityKey))
                     ->response($tooManyAttempts),
             ];
         });

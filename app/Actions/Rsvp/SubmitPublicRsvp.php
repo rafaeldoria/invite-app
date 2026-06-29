@@ -5,6 +5,7 @@ namespace App\Actions\Rsvp;
 use App\Enums\GuestStatus;
 use App\Models\Event;
 use App\Models\Guest;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -29,6 +30,10 @@ final class SubmitPublicRsvp
                 ->first();
 
             if ($guest === null) {
+                if (Guest::query()->where('response_token_hash', $hash)->exists()) {
+                    throw new ModelNotFoundException;
+                }
+
                 return $event->guests()->create([
                     'name' => $data['name'],
                     'response_token_hash' => $hash,

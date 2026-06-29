@@ -143,6 +143,31 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(1, Guest::query()->count());
     }
 
+    public function test_general_token_reused_from_another_event_is_rejected(): void
+    {
+        $event = Event::factory()->create();
+        $otherEvent = Event::factory()->create();
+        $token = Str::random(64);
+
+        $this->post(route('public.rsvp.store', $event), [
+            'name' => 'Original Guest',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 0,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertRedirect();
+
+        $this->post(route('public.rsvp.store', $otherEvent), [
+            'name' => 'Token Reuser',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 0,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertNotFound();
+
+        $this->assertSame(1, Guest::query()->count());
+    }
+
     public function test_individual_invitation_updates_existing_guest_without_creating_another(): void
     {
         $event = Event::factory()->create();
@@ -340,6 +365,22 @@ class PublicRsvpTest extends TestCase
                 'child_companions' => 0,
                 'response_token' => Str::random(64),
             ])->assertRedirect();
+    }
+
+    public function test_public_rsvp_rate_limit_handles_malformed_response_token(): void
+    {
+        config()->set('app.env', 'production');
+
+        $event = Event::factory()->create();
+
+        $this->from(route('public.rsvp.create', $event))
+            ->post(route('public.rsvp.store', $event), [
+                'name' => 'Malformed Token Guest',
+                'attendance' => GuestStatus::Confirmed->value,
+                'adult_companions' => 0,
+                'child_companions' => 0,
+                'response_token' => ['not-a-token'],
+            ])->assertSessionHasErrors(['response_token']);
     }
 
     public function test_public_rsvp_event_rate_limit_is_scoped_per_event(): void

@@ -97,7 +97,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                         </div>
                     ) : null}
 
-                    <form onSubmit={submit} className="mt-6 space-y-6">
+                    <form onSubmit={submit} className="mt-6 space-y-6" noValidate>
                         {rsvp.name_locked ? (
                             <div className="rounded-lg bg-canvas p-4">
                                 <p className="text-sm font-semibold text-ink">{t('rsvp.form.invitedGuest')}</p>
