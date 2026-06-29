@@ -74,6 +74,7 @@ export default function Show({ event }: { event: EventDetail }) {
                             <h2 className="text-base font-semibold text-ink">{t('events.show.actions')}</h2>
                             <div className="mt-4 grid gap-3">
                                 <ButtonLink href={event.links.public ?? '#'} variant="secondary">{t('events.show.publicPage')}</ButtonLink>
+                                <ButtonLink href={event.links.dashboard ?? '#'} variant="secondary">{t('events.show.dashboard')}</ButtonLink>
                                 <ButtonLink href={event.links.guests ?? '#'} variant="secondary">{t('events.show.guests')}</ButtonLink>
                                 <ButtonLink href={event.links.edit ?? '#'}>{t('events.show.edit')}</ButtonLink>
                                 <Button type="button" variant="danger" onClick={() => setDeleteOpen(true)}>{t('events.show.delete')}</Button>
