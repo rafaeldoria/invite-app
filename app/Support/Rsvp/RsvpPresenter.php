@@ -26,6 +26,8 @@ final class RsvpPresenter
         ?string $updateUrl = null,
         ?string $eventUrl = null,
     ): array {
+        $guest?->loadMissing('companions');
+
         return [
             'event' => $this->events->publicDetail($event),
             'rsvp' => [
@@ -41,6 +43,7 @@ final class RsvpPresenter
                     'attendance' => in_array($guest?->status, [GuestStatus::Confirmed, GuestStatus::Declined], true) ? $guest->status->value : '',
                     'adult_companions' => $guest?->adult_companions ?? 0,
                     'child_companions' => $guest?->child_companions ?? 0,
+                    'companions' => $this->companions($guest),
                 ],
                 'receipt' => $guest?->responded_at === null ? null : $this->receipt($event, $guest, $updateUrl ?? $submitUrl),
             ],
@@ -62,10 +65,38 @@ final class RsvpPresenter
             'status' => $guest->status->value,
             'adult_companions' => $guest->adult_companions,
             'child_companions' => $guest->child_companions,
+            'companions' => $guest->companions->map(fn ($companion): array => [
+                'name' => $companion->name,
+                'is_child' => $companion->is_child,
+            ])->values()->all(),
             'companion_count' => $guest->companionCount(),
             'party_size' => $guest->status->allowsCompanions() ? 1 + $guest->companionCount() : 0,
             'updated_at' => $guest->responded_at?->toJSON(),
             'update_url' => $updateUrl,
+        ];
+    }
+
+    /**
+     * @return list<array{name: string, is_child: bool}>
+     */
+    private function companions(?Guest $guest): array
+    {
+        if ($guest === null || ! $guest->status->allowsCompanions()) {
+            return [];
+        }
+
+        $companions = $guest->companions->map(fn ($companion): array => [
+            'name' => $companion->name,
+            'is_child' => $companion->is_child,
+        ])->values()->all();
+
+        if ($companions !== []) {
+            return $companions;
+        }
+
+        return [
+            ...array_fill(0, $guest->adult_companions, ['name' => '', 'is_child' => false]),
+            ...array_fill(0, $guest->child_companions, ['name' => '', 'is_child' => true]),
         ];
     }
 }

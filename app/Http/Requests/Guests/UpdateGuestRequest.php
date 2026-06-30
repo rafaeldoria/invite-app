@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Guest;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateGuestRequest extends FormRequest
 {
@@ -38,8 +39,29 @@ class UpdateGuestRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'min:1', 'max:120'],
             'status' => ['required', Rule::enum(GuestStatus::class)],
-            'adult_companions' => ['required', 'integer', 'min:0', 'max:20'],
-            'child_companions' => ['required', 'integer', 'min:0', 'max:20'],
+            'adult_companions' => ['required', 'integer', 'min:0', 'max:5'],
+            'child_companions' => ['required', 'integer', 'min:0', 'max:5'],
+        ];
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($this->input('status') !== GuestStatus::Confirmed->value) {
+                    return;
+                }
+
+                if (((int) $this->input('adult_companions', 0) + (int) $this->input('child_companions', 0)) > 5) {
+                    $validator->errors()->add('child_companions', __('validation.max.array', [
+                        'attribute' => __('guests.attributes.companions'),
+                        'max' => 5,
+                    ]));
+                }
+            },
         ];
     }
 

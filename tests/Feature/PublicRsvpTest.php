@@ -48,8 +48,11 @@ class PublicRsvpTest extends TestCase
         $this->post(route('public.rsvp.store', $event), [
             'name' => '  Sam Guest  ',
             'attendance' => GuestStatus::Confirmed->value,
-            'adult_companions' => 2,
-            'child_companions' => 1,
+            'companions' => [
+                ['name' => 'Alex Guest', 'is_child' => false],
+                ['name' => 'Taylor Guest', 'is_child' => false],
+                ['name' => 'Kid Guest', 'is_child' => true],
+            ],
             'response_token' => $token,
         ])->assertRedirect(route('public.rsvp.show', [$event, $token]));
 
@@ -58,6 +61,16 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(GuestStatus::Confirmed, $guest->status);
         $this->assertSame(2, $guest->adult_companions);
         $this->assertSame(1, $guest->child_companions);
+        $this->assertDatabaseHas('guest_companions', [
+            'guest_id' => $guest->id,
+            'name' => 'Alex Guest',
+            'is_child' => false,
+        ]);
+        $this->assertDatabaseHas('guest_companions', [
+            'guest_id' => $guest->id,
+            'name' => 'Kid Guest',
+            'is_child' => true,
+        ]);
         $this->assertSame(hash('sha256', $token), $guest->response_token_hash);
         $this->assertNotSame($token, $guest->response_token_hash);
         $this->assertNotNull($guest->responded_at);
@@ -73,6 +86,8 @@ class PublicRsvpTest extends TestCase
                 ->where('rsvp.receipt.status', 'confirmed')
                 ->where('rsvp.receipt.companion_count', 3)
                 ->where('rsvp.receipt.party_size', 4)
+                ->where('rsvp.receipt.companions.0.name', 'Alex Guest')
+                ->where('rsvp.initial.companions.2.is_child', true)
                 ->missing('rsvp.receipt.invitation_token')
                 ->missing('rsvp.receipt.response_token_hash')
                 ->missing('event.owner')
@@ -90,6 +105,7 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(GuestStatus::Declined, $guest->status);
         $this->assertSame(0, $guest->adult_companions);
         $this->assertSame(0, $guest->child_companions);
+        $this->assertDatabaseCount('guest_companions', 0);
         $this->assertSame('2030-01-01 12:05:00', $guest->responded_at->format('Y-m-d H:i:s'));
     }
 
@@ -235,21 +251,27 @@ class PublicRsvpTest extends TestCase
 
         $this->patch(route('public.invitations.rsvp.update', [$event, $guest->invitation_token]), [
             'attendance' => GuestStatus::Confirmed->value,
-            'adult_companions' => 0,
-            'child_companions' => 20,
+            'companions' => [
+                ['name' => 'First Child', 'is_child' => true],
+                ['name' => 'Second Child', 'is_child' => true],
+                ['name' => 'Third Child', 'is_child' => true],
+                ['name' => 'Fourth Child', 'is_child' => true],
+                ['name' => 'Fifth Child', 'is_child' => true],
+            ],
         ])->assertRedirect(route('public.invitations.rsvp.edit', [$event, $guest->invitation_token]));
 
         $guest->refresh();
         $this->assertSame(1, Guest::query()->count());
         $this->assertSame(GuestStatus::Confirmed, $guest->status);
         $this->assertSame(0, $guest->adult_companions);
-        $this->assertSame(20, $guest->child_companions);
+        $this->assertSame(5, $guest->child_companions);
+        $this->assertDatabaseCount('guest_companions', 5);
 
         $this->get(route('public.invitations.rsvp.edit', [$event, $guest->invitation_token]))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('rsvp.receipt.status', 'confirmed')
-                ->where('rsvp.receipt.party_size', 21));
+                ->where('rsvp.receipt.party_size', 6));
     }
 
     public function test_name_collisions_create_separate_general_responses(): void
@@ -284,26 +306,31 @@ class PublicRsvpTest extends TestCase
             'name' => '',
             'attendance' => 'pending',
             'adult_companions' => -1,
-            'child_companions' => 21,
+            'child_companions' => 6,
             'response_token' => 'short',
         ])->assertSessionHasErrors(['name', 'attendance', 'adult_companions', 'child_companions', 'response_token']);
 
         $this->post(route('public.rsvp.store', $event), [
             'name' => 'Boundary Guest',
             'attendance' => GuestStatus::Confirmed->value,
-            'adult_companions' => 0,
-            'child_companions' => 20,
+            'companions' => [
+                ['name' => 'Child One', 'is_child' => true],
+                ['name' => 'Child Two', 'is_child' => true],
+                ['name' => 'Child Three', 'is_child' => true],
+                ['name' => 'Child Four', 'is_child' => true],
+                ['name' => 'Child Five', 'is_child' => true],
+            ],
             'response_token' => $token,
         ])->assertRedirect();
 
         $guest = Guest::query()->firstOrFail();
         $this->assertSame(0, $guest->adult_companions);
-        $this->assertSame(20, $guest->child_companions);
+        $this->assertSame(5, $guest->child_companions);
 
         $this->patch(route('public.rsvp.update', [$event, $token]), [
             'attendance' => GuestStatus::Declined->value,
-            'adult_companions' => 20,
-            'child_companions' => 20,
+            'adult_companions' => 5,
+            'child_companions' => 5,
         ])->assertRedirect();
 
         $guest->refresh();
@@ -315,6 +342,25 @@ class PublicRsvpTest extends TestCase
             'adult_companions' => '1.5',
             'child_companions' => 'one',
         ])->assertSessionHasErrors(['adult_companions', 'child_companions']);
+
+        $this->patch(route('public.rsvp.update', [$event, $token]), [
+            'attendance' => GuestStatus::Confirmed->value,
+            'companions' => [
+                ['name' => 'One', 'is_child' => false],
+                ['name' => 'Two', 'is_child' => false],
+                ['name' => 'Three', 'is_child' => false],
+                ['name' => 'Four', 'is_child' => false],
+                ['name' => 'Five', 'is_child' => false],
+                ['name' => 'Six', 'is_child' => false],
+            ],
+        ])->assertSessionHasErrors(['companions']);
+
+        $this->patch(route('public.rsvp.update', [$event, $token]), [
+            'attendance' => GuestStatus::Confirmed->value,
+            'companions' => [
+                ['name' => '', 'is_child' => false],
+            ],
+        ])->assertSessionHasErrors(['companions.0.name']);
     }
 
     public function test_tampered_unknown_and_mismatched_capabilities_are_not_found(): void

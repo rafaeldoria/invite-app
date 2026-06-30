@@ -153,7 +153,7 @@ class GuestManagementTest extends TestCase
                 'name' => 'Sam Guest',
                 'status' => 'unknown',
                 'adult_companions' => -1,
-                'child_companions' => 21,
+                'child_companions' => 6,
             ])
             ->assertSessionHasErrors(['status', 'adult_companions', 'child_companions']);
     }

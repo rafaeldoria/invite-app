@@ -79,6 +79,10 @@ class GuestController extends Controller
 
         $guest->update($request->guestAttributes());
 
+        if (! $guest->status->allowsCompanions()) {
+            $guest->companions()->delete();
+        }
+
         return back()->with('success', __('guests.messages.updated'));
     }
 

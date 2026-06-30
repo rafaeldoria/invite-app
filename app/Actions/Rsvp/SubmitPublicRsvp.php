@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 final class SubmitPublicRsvp
 {
     /**
-     * @param  array{name: string, attendance: string, adult_companions: int, child_companions: int}  $data
+     * @param  array{name: string, attendance: string, adult_companions: int, child_companions: int, companions?: list<array{name: string, is_child: bool}>}  $data
      */
     public function createFromGeneralLink(Event $event, string $responseToken, array $data): Guest
     {
@@ -36,11 +36,15 @@ final class SubmitPublicRsvp
                 }
 
                 try {
-                    return $event->guests()->create([
+                    $guest = $event->guests()->create([
                         'name' => $data['name'],
                         'response_token_hash' => $hash,
                         ...$this->responseAttributes($data),
                     ]);
+
+                    $this->syncCompanions($guest, $data);
+
+                    return $guest;
                 } catch (QueryException $exception) {
                     if ($this->isResponseTokenHashConflict($exception)) {
                         throw new ModelNotFoundException;
@@ -54,12 +58,14 @@ final class SubmitPublicRsvp
                 ...$this->responseAttributes($data),
             ]);
 
+            $this->syncCompanions($guest, $data);
+
             return $guest;
         });
     }
 
     /**
-     * @param  array{attendance: string, adult_companions: int, child_companions: int}  $data
+     * @param  array{attendance: string, adult_companions: int, child_companions: int, companions?: list<array{name: string, is_child: bool}>}  $data
      */
     public function updateFromManagementToken(Event $event, string $responseToken, array $data): Guest
     {
@@ -67,13 +73,14 @@ final class SubmitPublicRsvp
             $guest = $this->guestForManagementToken($event, $responseToken, true);
 
             $guest->update($this->responseAttributes($data));
+            $this->syncCompanions($guest, $data);
 
             return $guest;
         });
     }
 
     /**
-     * @param  array{attendance: string, adult_companions: int, child_companions: int}  $data
+     * @param  array{attendance: string, adult_companions: int, child_companions: int, companions?: list<array{name: string, is_child: bool}>}  $data
      */
     public function updateFromInvitationToken(Event $event, string $invitationToken, array $data): Guest
     {
@@ -81,6 +88,7 @@ final class SubmitPublicRsvp
             $guest = $this->guestForInvitationToken($event, $invitationToken, true);
 
             $guest->update($this->responseAttributes($data));
+            $this->syncCompanions($guest, $data);
 
             return $guest;
         });
@@ -138,5 +146,26 @@ final class SubmitPublicRsvp
             'child_companions' => $status->allowsCompanions() ? $data['child_companions'] : 0,
             'responded_at' => now(),
         ];
+    }
+
+    /**
+     * @param  array{attendance: string, companions?: list<array{name: string, is_child: bool}>}  $data
+     */
+    private function syncCompanions(Guest $guest, array $data): void
+    {
+        $status = GuestStatus::from($data['attendance']);
+
+        $guest->companions()->delete();
+
+        if (! $status->allowsCompanions()) {
+            return;
+        }
+
+        foreach (array_slice($data['companions'] ?? [], 0, 5) as $companion) {
+            $guest->companions()->create([
+                'name' => $companion['name'],
+                'is_child' => $companion['is_child'],
+            ]);
+        }
     }
 }
