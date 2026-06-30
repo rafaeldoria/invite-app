@@ -27,6 +27,7 @@ class GuestController extends Controller
         $status = $this->statusFilter($request);
 
         $guests = $event->guests()
+            ->with('companions')
             ->when($status !== null, fn ($query) => $query->where('status', $status->value))
             ->orderBy('name')
             ->orderBy('id')

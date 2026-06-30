@@ -46,6 +46,7 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
     const [createOpen, setCreateOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<GuestListItem | null>(null);
     const [deletingGuest, setDeletingGuest] = useState<GuestListItem | null>(null);
+    const [companionGuest, setCompanionGuest] = useState<GuestListItem | null>(null);
     const [feedback, setFeedback] = useState<Feedback>(null);
 
     const createForm = useForm<GuestFormData>(defaultGuestForm);
@@ -129,15 +130,6 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
         });
     }
 
-    async function copyInvitation(guest: GuestListItem) {
-        try {
-            await copyText(guest.invitation_url);
-            setFeedback({ tone: 'success', message: t('guests.feedback.copySuccess', { name: guest.name }) });
-        } catch {
-            setFeedback({ tone: 'error', message: t('guests.feedback.copyError') });
-        }
-    }
-
     function filterHref(status: GuestStatus | 'all') {
         return status === 'all' ? event.links.guests : `${event.links.guests}?status=${status}`;
     }
@@ -209,8 +201,8 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                                                 <p className="text-sm leading-6 text-muted">{companionSummary(guest, t, tp)}</p>
                                             </div>
                                             <div className="grid gap-2 sm:grid-cols-3 lg:w-auto lg:min-w-[28rem]">
-                                                <Button type="button" variant="secondary" onClick={() => copyInvitation(guest)} aria-label={t('guests.actions.copyFor', { name: guest.name })}>
-                                                    {t('guests.actions.copy')}
+                                                <Button type="button" variant="secondary" onClick={() => setCompanionGuest(guest)} aria-label={t('guests.actions.companionsFor', { name: guest.name })}>
+                                                    {t('guests.actions.companions')}
                                                 </Button>
                                                 <Button type="button" variant="secondary" onClick={() => openEditDialog(guest)} aria-label={t('guests.actions.editFor', { name: guest.name })}>
                                                     {t('guests.actions.edit')}
@@ -322,6 +314,33 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                 closeOnConfirm={false}
                 confirmDisabled={deleteForm.processing}
             />
+
+            <Dialog
+                open={companionGuest !== null}
+                onClose={() => setCompanionGuest(null)}
+                title={companionGuest ? t('guests.companions.modalTitle', { name: companionGuest.name }) : t('guests.companions.title')}
+                description={t('guests.companions.modalDescription')}
+                cancelLabel={t('guests.companions.close')}
+            >
+                <div className="mt-5">
+                    {companionGuest && companionGuest.companions.length > 0 ? (
+                        <ul className="divide-y divide-border rounded-lg border border-border" aria-label={t('guests.companions.listLabel')}>
+                            {companionGuest.companions.map((companion, index) => (
+                                <li key={`${companion.name}-${index}`} className="flex items-center justify-between gap-4 px-4 py-3">
+                                    <span className="min-w-0 break-words text-sm font-medium text-ink">{companion.name}</span>
+                                    <span className="shrink-0 rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
+                                        {companion.is_child ? t('guests.companions.child') : t('guests.companions.adult')}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
+                            {t('guests.companions.none')}
+                        </p>
+                    )}
+                </div>
+            </Dialog>
         </AuthenticatedLayout>
     );
 }
@@ -353,32 +372,4 @@ function companionSummary(guest: GuestListItem, t: ReturnType<typeof useLocale>[
         adults: translatePlural('adultCompanions.count', guest.adult_companions),
         children: translatePlural('childCompanions.count', guest.child_companions),
     });
-}
-
-async function copyText(value: string): Promise<void> {
-    if (navigator.clipboard?.writeText) {
-        try {
-            await navigator.clipboard.writeText(value);
-            return;
-        } catch {
-            // Continue to the textarea fallback for browsers that expose Clipboard but reject it.
-        }
-    }
-
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', 'true');
-    textarea.style.position = 'fixed';
-    textarea.style.inset = '0 auto auto 0';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-
-    try {
-        if (!document.execCommand('copy')) {
-            throw new Error('Copy command failed.');
-        }
-    } finally {
-        document.body.removeChild(textarea);
-    }
 }

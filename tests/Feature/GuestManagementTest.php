@@ -65,8 +65,9 @@ class GuestManagementTest extends TestCase
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('guests.data.0.status', 'pending')
                 ->where('guests.data.0.companion_count', 0)
-                ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
+                ->has('guests.data.0.companions', 0)
                 ->missing('guests.data.0.id')
+                ->missing('guests.data.0.invitation_url')
                 ->missing('guests.data.0.invitation_token')
                 ->missing('guests.data.0.response_token_hash'));
 
@@ -270,6 +271,29 @@ class GuestManagementTest extends TestCase
         ]);
     }
 
+    public function test_guest_list_returns_named_companions_without_invitation_links(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->confirmed(1, 1)->create(['name' => 'Alex Guest']);
+
+        GuestCompanion::factory()->for($guest)->create(['name' => 'Adult Companion']);
+        GuestCompanion::factory()->for($guest)->child()->create(['name' => 'Child Companion']);
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', $event))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('guests.data.0.name', 'Alex Guest')
+                ->has('guests.data.0.companions', 2)
+                ->where('guests.data.0.companions.0.name', 'Adult Companion')
+                ->where('guests.data.0.companions.0.is_child', false)
+                ->where('guests.data.0.companions.1.name', 'Child Companion')
+                ->where('guests.data.0.companions.1.is_child', true)
+                ->missing('guests.data.0.invitation_url')
+            );
+    }
+
     public function test_pagination_sorting_filters_and_invalid_filters(): void
     {
         $user = User::factory()->create();
@@ -339,23 +363,21 @@ class GuestManagementTest extends TestCase
         $this->get($url)->assertNotFound();
     }
 
-    public function test_invitation_urls_use_trusted_app_url_not_request_host(): void
+    public function test_guest_index_does_not_expose_invitation_urls(): void
     {
         config()->set('app.url', 'https://events.example.com');
 
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
-        $guest = Guest::factory()->for($event)->create(['name' => 'Trusted Link Guest']);
+        Guest::factory()->for($event)->create(['name' => 'Trusted Link Guest']);
 
         $this->actingAs($user)
             ->withHeader('Host', 'attacker.test')
             ->get(route('events.guests.index', $event))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where(
-                    'guests.data.0.invitation_url',
-                    'https://events.example.com/e/'.$event->public_id.'/invitation/'.$guest->invitation_token,
-                ));
+                ->missing('guests.data.0.invitation_url')
+                ->missing('guests.data.0.invitation_token'));
     }
 
     public function test_guest_index_query_count_is_bounded_for_a_page(): void
