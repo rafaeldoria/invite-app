@@ -30,24 +30,11 @@ class LocaleTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('locale', 'pt-BR'));
     }
 
-    #[DataProvider('englishBrowserLocales')]
-    public function test_english_browser_preference_is_used_without_an_explicit_preference(string $acceptLanguage): void
+    public function test_browser_preference_does_not_override_the_default_locale(): void
     {
-        $this->withHeader('Accept-Language', $acceptLanguage)
+        $this->withHeader('Accept-Language', 'en-US,en;q=0.9')
             ->get('/')
-            ->assertInertia(fn (Assert $page) => $page->where('locale', 'en-US'));
-    }
-
-    /**
-     * @return array<string, array{string}>
-     */
-    public static function englishBrowserLocales(): array
-    {
-        return [
-            'us english' => ['en-US,en;q=0.9,pt-BR;q=0.8'],
-            'generic english' => ['en'],
-            'regional english' => ['en-GB,en;q=0.9'],
-        ];
+            ->assertInertia(fn (Assert $page) => $page->where('locale', 'pt-BR'));
     }
 
     public function test_explicit_locale_is_persisted_in_session_and_cookie(): void
