@@ -5,8 +5,10 @@ import { Field } from '../forms/Field';
 import { Select, Textarea, TextInput } from '../forms/controls';
 import { FormErrorSummary } from '../forms/FormErrorSummary';
 import { Button } from '../ui/Button';
+import { formatFormDate, formatFormTime, parseFormDateInput, parseFormTimeInput } from '../../utils/formatting';
 import type { EventCoverImage, EventDetail, EventFormData, TimezoneOption } from '../../types/events';
 import type { TranslationKey } from '../../locales';
+import type { Locale } from '../../types/shared';
 
 const maxCoverBytes = 5 * 1024 * 1024;
 const allowedCoverTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -18,6 +20,7 @@ type EventFormProps = {
     event?: EventDetail;
     timezoneOptions: TimezoneOption[];
     defaultTimezone: string;
+    locale: Locale;
     t: (key: TranslationKey, replacements?: Record<string, string | number>) => string;
 };
 
@@ -35,15 +38,24 @@ function buildInitialData(event: EventDetail | undefined, defaultTimezone: strin
     };
 }
 
-export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, defaultTimezone, t }: EventFormProps) {
+export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, defaultTimezone, locale, t }: EventFormProps) {
     const form = useForm<EventFormData>(buildInitialData(event, defaultTimezone));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
+    const [startsDateInput, setStartsDateInput] = useState(() => formatFormDate(form.data.starts_date, locale));
+    const [startsTimeInput, setStartsTimeInput] = useState(() => formatFormTime(form.data.starts_time, locale));
     const currentCover = event?.cover_image ?? null;
     const hasVisibleCover = previewUrl !== null || (currentCover?.url !== null && !form.data.remove_cover_image);
     const coverAlt = event?.name ? t('events.coverAlt', { name: event.name }) : '';
     const formTitle = mode === 'create' ? t('events.create.title') : t('events.edit.title');
+    const datePlaceholder = locale === 'pt-BR' ? 'DD/MM/AAAA' : 'MM/DD/YYYY';
+    const timePlaceholder = locale === 'pt-BR' ? '18:00' : '6:00 PM';
+
+    useEffect(() => {
+        setStartsDateInput(formatFormDate(form.data.starts_date, locale));
+        setStartsTimeInput(formatFormTime(form.data.starts_time, locale));
+    }, [locale]);
 
     const errors = useMemo(() => {
         const fieldIds: Partial<Record<keyof EventFormData, string>> = {
@@ -162,15 +174,67 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
                 }
             },
         };
+        const transformEventData = (data: EventFormData) => ({
+            ...data,
+            starts_date: parseFormDateInput(startsDateInput, locale) ?? '',
+            starts_time: parseFormTimeInput(startsTimeInput) ?? '',
+        });
 
         if (mode === 'edit') {
-            form.transform((data) => ({ ...data, _method: 'patch' }));
+            form.transform((data) => ({ ...transformEventData(data), _method: 'patch' }));
             form.post(submitUrl, options);
 
             return;
         }
 
+        form.transform(transformEventData);
         form.post(submitUrl, options);
+    }
+
+    function changeStartsDate(value: string) {
+        setStartsDateInput(value);
+
+        const parsedDate = parseFormDateInput(value, locale);
+
+        if (parsedDate !== null) {
+            form.setData('starts_date', parsedDate);
+        }
+    }
+
+    function blurStartsDate() {
+        const parsedDate = parseFormDateInput(startsDateInput, locale);
+
+        if (parsedDate === null) {
+            form.setData('starts_date', '');
+
+            return;
+        }
+
+        form.setData('starts_date', parsedDate);
+        setStartsDateInput(formatFormDate(parsedDate, locale));
+    }
+
+    function changeStartsTime(value: string) {
+        setStartsTimeInput(value);
+
+        const parsedTime = parseFormTimeInput(value);
+
+        if (parsedTime !== null) {
+            form.setData('starts_time', parsedTime);
+        }
+    }
+
+    function blurStartsTime() {
+        const parsedTime = parseFormTimeInput(startsTimeInput);
+
+        if (parsedTime === null) {
+            form.setData('starts_time', '');
+
+            return;
+        }
+
+        form.setData('starts_time', parsedTime);
+        setStartsTimeInput(formatFormTime(parsedTime, locale));
     }
 
     function cancel() {
@@ -202,10 +266,10 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
 
                     <div className="grid gap-5 sm:grid-cols-2">
                         <Field id="event-starts-date" label={t('events.form.date')} required error={form.errors.starts_date}>
-                            <TextInput id="event-starts-date" type="date" value={form.data.starts_date} invalid={Boolean(form.errors.starts_date)} onChange={(change) => form.setData('starts_date', change.target.value)} />
+                            <TextInput id="event-starts-date" type="text" inputMode="numeric" placeholder={datePlaceholder} value={startsDateInput} invalid={Boolean(form.errors.starts_date)} onChange={(change) => changeStartsDate(change.target.value)} onBlur={blurStartsDate} autoComplete="off" />
                         </Field>
                         <Field id="event-starts-time" label={t('events.form.time')} required error={form.errors.starts_time}>
-                            <TextInput id="event-starts-time" type="time" value={form.data.starts_time} invalid={Boolean(form.errors.starts_time)} onChange={(change) => form.setData('starts_time', change.target.value)} />
+                            <TextInput id="event-starts-time" type="text" placeholder={timePlaceholder} value={startsTimeInput} invalid={Boolean(form.errors.starts_time)} onChange={(change) => changeStartsTime(change.target.value)} onBlur={blurStartsTime} autoComplete="off" />
                         </Field>
                     </div>
 

@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo, type FormEvent } from 'react';
+import { useMemo, type FormEvent, type ReactNode } from 'react';
 import { Alert } from '../../components/feedback/Alert';
 import { FormErrorSummary } from '../../components/forms/FormErrorSummary';
 import { Field } from '../../components/forms/Field';
@@ -118,9 +118,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
 
                     {rsvp.receipt ? (
                         <div className="mt-6">
-                            <Alert title={t('rsvp.receipt.savedTitle')} tone="success">
-                                {receiptSummary(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)}
-                            </Alert>
+                            <Alert title={t('rsvp.receipt.savedTitle')} tone="success" />
                         </div>
                     ) : null}
 
@@ -149,6 +147,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                                     id="rsvp-attendance-confirmed"
                                     name="attendance"
                                     checked={form.data.attendance === 'confirmed'}
+                                    emoji="😁"
                                     title={t('rsvp.form.confirm')}
                                     description={t('rsvp.form.confirmDescription')}
                                     onChange={() => chooseAttendance('confirmed')}
@@ -157,6 +156,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                                     id="rsvp-attendance-declined"
                                     name="attendance"
                                     checked={form.data.attendance === 'declined'}
+                                    emoji="😔"
                                     title={t('rsvp.form.decline')}
                                     description={t('rsvp.form.declineDescription')}
                                     onChange={() => chooseAttendance('declined')}
@@ -218,8 +218,6 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                                     <Alert title={t('rsvp.form.companionLimitTitle')} tone="info">{t('rsvp.form.companionLimitDescription')}</Alert>
                                 )}
                             </section>
-                        ) : form.data.attendance === 'declined' ? (
-                            <Alert title={t('rsvp.form.countsClearedTitle')} tone="info">{t('rsvp.form.countsClearedDescription')}</Alert>
                         ) : null}
 
                         <div className="rounded-lg bg-canvas p-4 text-sm text-muted">
@@ -236,7 +234,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                 <aside className="min-w-0 space-y-4 lg:sticky lg:top-6">
                     <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-event-title">
                         <h2 id="rsvp-event-title" className="text-lg font-semibold text-ink">{event.name}</h2>
-                        {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{event.theme}</p> : null}
+                        {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{t('theme.label')}: {event.theme}</p> : null}
                         <dl className="mt-4 space-y-3 text-sm">
                             <div>
                                 <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
@@ -252,15 +250,14 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                     {rsvp.receipt ? (
                         <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-receipt-title">
                             <h2 id="rsvp-receipt-title" className="text-base font-semibold text-ink">{t('rsvp.receipt.summaryTitle')}</h2>
-                            <dl className="mt-4 space-y-3 text-sm">
+                            <p className="mt-5 text-sm font-semibold text-ink">
+                                <span aria-hidden="true">✓ </span>{statusLabel(rsvp.receipt.status, t)}
+                            </p>
+                            <dl className="mt-5 space-y-5 text-sm">
                                 <ReceiptRow label={t('rsvp.receipt.guest')} value={rsvp.receipt.name} />
-                                <ReceiptRow label={t('rsvp.receipt.status')} value={statusLabel(rsvp.receipt.status, t)} />
-                                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptSummary(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)} />
+                                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptPartySize(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)} />
                                 <ReceiptRow label={t('rsvp.receipt.updatedAt')} value={`${formatDate(rsvp.receipt.updated_at, locale, event.timezone)} · ${formatTime(rsvp.receipt.updated_at, locale, event.timezone)}`} />
                             </dl>
-                            <a href="#rsvp-form-title" className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                                {t('rsvp.receipt.updateAction')}
-                            </a>
                         </section>
                     ) : null}
                 </aside>
@@ -269,7 +266,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
     );
 }
 
-function AttendanceOption({ id, name, checked, title, description, onChange }: { id: string; name: string; checked: boolean; title: string; description: string; onChange: () => void }) {
+function AttendanceOption({ id, name, checked, emoji, title, description, onChange }: { id: string; name: string; checked: boolean; emoji: string; title: string; description: string; onChange: () => void }) {
     return (
         <label htmlFor={id} className={`block min-h-24 cursor-pointer rounded-lg border p-4 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${checked ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong'}`}>
             <input id={id} type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
@@ -278,7 +275,7 @@ function AttendanceOption({ id, name, checked, title, description, onChange }: {
                     {checked ? <span className="size-2.5 rounded-full bg-ink" /> : null}
                 </span>
                 <span className="min-w-0">
-                    <span className="block text-base font-semibold text-ink">{title}</span>
+                    <span className="block text-base font-semibold text-ink">{title} <span aria-hidden="true">{emoji}</span></span>
                     <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
                 </span>
             </span>
@@ -290,14 +287,19 @@ function ReceiptRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <dt className="font-semibold text-ink">{label}</dt>
-            <dd className="mt-1 break-words text-muted">{value}</dd>
+            <dd className="mt-1 break-words text-ink">{value}</dd>
         </div>
     );
 }
 
-function partySummary(attendance: RsvpAttendance | '', partySize: number, companionCount: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
+function partySummary(attendance: RsvpAttendance | '', partySize: number, companionCount: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): ReactNode {
     if (attendance === 'declined') {
-        return t('rsvp.summary.declined');
+        return (
+            <>
+                <span>{t('rsvp.summary.declined')}</span>
+                <span className="mt-1 block">{t('rsvp.summary.changeAllowed')}</span>
+            </>
+        );
     }
 
     if (attendance === 'confirmed') {
@@ -310,12 +312,12 @@ function partySummary(attendance: RsvpAttendance | '', partySize: number, compan
     return t('rsvp.summary.pending');
 }
 
-function receiptSummary(status: RsvpAttendance, partySize: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
+function receiptPartySize(status: RsvpAttendance, partySize: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
     if (status === 'declined') {
         return t('rsvp.receipt.declined');
     }
 
-    return t('rsvp.receipt.confirmed', { party: tp('guests.count', partySize) });
+    return tp('guests.count', partySize);
 }
 
 function statusLabel(status: RsvpAttendance, t: ReturnType<typeof useLocale>['t']): string {
