@@ -76,10 +76,15 @@ class GuestController extends Controller
     public function update(UpdateGuestRequest $request, Event $event, Guest $guest): RedirectResponse
     {
         $this->ensureGuestBelongsToEvent($event, $guest);
+        $originalAdultCompanions = $guest->adult_companions;
+        $originalChildCompanions = $guest->child_companions;
 
         $guest->update($request->guestAttributes());
 
-        if (! $guest->status->allowsCompanions()) {
+        $companionCountsChanged = $guest->adult_companions !== $originalAdultCompanions
+            || $guest->child_companions !== $originalChildCompanions;
+
+        if (! $guest->status->allowsCompanions() || $companionCountsChanged) {
             $guest->companions()->delete();
         }
 

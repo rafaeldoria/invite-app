@@ -274,6 +274,20 @@ class PublicRsvpTest extends TestCase
                 ->where('rsvp.receipt.party_size', 6));
     }
 
+    public function test_legacy_companion_counts_above_limit_do_not_render_too_many_required_inputs(): void
+    {
+        $event = Event::factory()->create();
+        $guest = Guest::factory()->for($event)->confirmed(8, 4)->create(['name' => 'Legacy Guest']);
+
+        $this->get(route('public.invitations.rsvp.edit', [$event, $guest->invitation_token]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Rsvp/Form')
+                ->has('rsvp.initial.companions', 5)
+                ->where('rsvp.initial.companions.0.is_child', false)
+                ->where('rsvp.initial.companions.4.is_child', false));
+    }
+
     public function test_name_collisions_create_separate_general_responses(): void
     {
         $event = Event::factory()->create();

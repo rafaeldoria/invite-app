@@ -9,6 +9,8 @@ use App\Support\Events\EventPresenter;
 
 final class RsvpPresenter
 {
+    private const int MAX_COMPANIONS = 5;
+
     public function __construct(
         private readonly EventPresenter $events,
     ) {}
@@ -94,9 +96,12 @@ final class RsvpPresenter
             return $companions;
         }
 
+        $adultCompanions = min($guest->adult_companions, self::MAX_COMPANIONS);
+        $childCompanions = min($guest->child_companions, self::MAX_COMPANIONS - $adultCompanions);
+
         return [
-            ...array_fill(0, $guest->adult_companions, ['name' => '', 'is_child' => false]),
-            ...array_fill(0, $guest->child_companions, ['name' => '', 'is_child' => true]),
+            ...array_fill(0, $adultCompanions, ['name' => '', 'is_child' => false]),
+            ...array_fill(0, $childCompanions, ['name' => '', 'is_child' => true]),
         ];
     }
 }
