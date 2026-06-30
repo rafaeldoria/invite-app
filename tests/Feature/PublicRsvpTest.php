@@ -160,6 +160,36 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(1, Guest::query()->count());
     }
 
+    public function test_count_only_companion_payload_does_not_persist_placeholder_names(): void
+    {
+        $event = Event::factory()->create();
+        $token = Str::random(64);
+
+        $this->post(route('public.rsvp.store', $event), [
+            'name' => 'Count Only Guest',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 2,
+            'child_companions' => 1,
+            'response_token' => $token,
+        ])->assertRedirect(route('public.rsvp.show', [$event, $token]));
+
+        $guest = Guest::query()->firstOrFail();
+
+        $this->assertSame(2, $guest->adult_companions);
+        $this->assertSame(1, $guest->child_companions);
+        $this->assertDatabaseCount('guest_companions', 0);
+
+        $this->get(route('public.rsvp.show', [$event, $token]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('rsvp.initial.companions', 3)
+                ->where('rsvp.initial.companions.0.name', '')
+                ->where('rsvp.initial.companions.0.is_child', false)
+                ->where('rsvp.initial.companions.2.name', '')
+                ->where('rsvp.initial.companions.2.is_child', true)
+                ->has('rsvp.receipt.companions', 0));
+    }
+
     public function test_general_token_reused_from_another_event_is_rejected(): void
     {
         $event = Event::factory()->create();

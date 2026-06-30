@@ -71,13 +71,9 @@ class SubmitRsvpRequest extends FormRequest
     public function rsvpData(): array
     {
         $validated = $this->validated();
-        $companions = [];
-
-        if ($validated['attendance'] === 'confirmed') {
-            $companions = array_key_exists('companions', $validated) && $validated['companions'] !== []
-                ? array_values($validated['companions'])
-                : $this->legacyCompanions((int) $validated['adult_companions'], (int) $validated['child_companions']);
-        }
+        $companions = $validated['attendance'] === 'confirmed'
+            ? array_values($validated['companions'] ?? [])
+            : [];
 
         return array_filter([
             'name' => $validated['name'] ?? null,
@@ -119,24 +115,6 @@ class SubmitRsvpRequest extends FormRequest
             'name' => is_array($companion) && is_string($companion['name'] ?? null) ? trim($companion['name']) : ($companion['name'] ?? null),
             'is_child' => is_array($companion) ? ($companion['is_child'] ?? false) : false,
         ], array_values($input));
-    }
-
-    /**
-     * @return list<array{name: string, is_child: bool}>
-     */
-    private function legacyCompanions(int $adults, int $children): array
-    {
-        $companions = [];
-
-        for ($adult = 0; $adult < $adults; $adult++) {
-            $companions[] = ['name' => 'Adult companion '.($adult + 1), 'is_child' => false];
-        }
-
-        for ($child = 0; $child < $children; $child++) {
-            $companions[] = ['name' => 'Child companion '.($child + 1), 'is_child' => true];
-        }
-
-        return $companions;
     }
 
     /**
