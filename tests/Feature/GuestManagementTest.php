@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\GuestStatus;
 use App\Models\Event;
 use App\Models\Guest;
+use App\Models\GuestCompanion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -153,7 +154,7 @@ class GuestManagementTest extends TestCase
                 'name' => 'Sam Guest',
                 'status' => 'unknown',
                 'adult_companions' => -1,
-                'child_companions' => 21,
+                'child_companions' => 6,
             ])
             ->assertSessionHasErrors(['status', 'adult_companions', 'child_companions']);
     }
@@ -220,6 +221,53 @@ class GuestManagementTest extends TestCase
         $this->assertSame(2, $guest->adult_companions);
         $this->assertSame(1, $guest->child_companions);
         $this->assertTrue($respondedAt->equalTo($guest->responded_at));
+    }
+
+    public function test_guest_count_edits_clear_stale_named_companions(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->confirmed(1, 1)->create();
+
+        GuestCompanion::factory()->for($guest)->create(['name' => 'Named Adult']);
+        GuestCompanion::factory()->for($guest)->child()->create(['name' => 'Named Child']);
+
+        $this->actingAs($user)
+            ->patch(route('events.guests.update', [$event, $guest]), [
+                'name' => $guest->name,
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 2,
+                'child_companions' => 0,
+            ])
+            ->assertRedirect();
+
+        $guest->refresh();
+
+        $this->assertSame(2, $guest->adult_companions);
+        $this->assertSame(0, $guest->child_companions);
+        $this->assertDatabaseCount('guest_companions', 0);
+    }
+
+    public function test_guest_name_edits_preserve_named_companions_when_counts_do_not_change(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->confirmed(1, 0)->create();
+        GuestCompanion::factory()->for($guest)->create(['name' => 'Named Adult']);
+
+        $this->actingAs($user)
+            ->patch(route('events.guests.update', [$event, $guest]), [
+                'name' => 'Corrected Name',
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 1,
+                'child_companions' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('guest_companions', [
+            'guest_id' => $guest->id,
+            'name' => 'Named Adult',
+        ]);
     }
 
     public function test_pagination_sorting_filters_and_invalid_filters(): void

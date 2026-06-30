@@ -3,6 +3,11 @@ import type { PublicEventDetail } from './events';
 export type RsvpAttendance = 'confirmed' | 'declined';
 export type RsvpMode = 'general' | 'invitation' | 'management';
 
+export type RsvpCompanion = {
+    name: string;
+    is_child: boolean;
+};
+
 export type RsvpReceipt = {
     event: {
         name: string;
@@ -13,6 +18,7 @@ export type RsvpReceipt = {
     status: RsvpAttendance;
     adult_companions: number;
     child_companions: number;
+    companions: RsvpCompanion[];
     companion_count: number;
     party_size: number;
     updated_at: string;
@@ -34,6 +40,7 @@ export type RsvpFormProps = {
             attendance: RsvpAttendance | '';
             adult_companions: number;
             child_companions: number;
+            companions: RsvpCompanion[];
         };
         receipt: RsvpReceipt | null;
     };
@@ -44,5 +51,6 @@ export type RsvpFormData = {
     attendance: RsvpAttendance | '';
     adult_companions: string;
     child_companions: string;
+    companions: RsvpCompanion[];
     response_token: string;
 };

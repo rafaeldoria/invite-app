@@ -3,9 +3,10 @@
 return [
     'attributes' => [
         'name' => 'guest name',
-        'status' => 'RSVP status',
+        'status' => 'response status',
         'adult_companions' => 'adult companions',
         'child_companions' => 'child companions',
+        'companions' => 'companions',
     ],
     'messages' => [
         'created' => 'Guest added.',

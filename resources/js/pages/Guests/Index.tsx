@@ -298,10 +298,10 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                     {editForm.data.status === 'confirmed' ? (
                         <div className="grid gap-4 sm:grid-cols-2">
                             <Field id="guest-edit-adults" label={t('guests.form.adultCompanions')} error={editForm.errors.adult_companions}>
-                                <TextInput id="guest-edit-adults" type="number" inputMode="numeric" min={0} max={20} value={editForm.data.adult_companions} invalid={Boolean(editForm.errors.adult_companions)} onChange={(event) => editForm.setData('adult_companions', Number(event.target.value || 0))} />
+                                <TextInput id="guest-edit-adults" type="number" inputMode="numeric" min={0} max={5} value={editForm.data.adult_companions} invalid={Boolean(editForm.errors.adult_companions)} onChange={(event) => editForm.setData('adult_companions', Number(event.target.value || 0))} />
                             </Field>
                             <Field id="guest-edit-children" label={t('guests.form.childCompanions')} error={editForm.errors.child_companions}>
-                                <TextInput id="guest-edit-children" type="number" inputMode="numeric" min={0} max={20} value={editForm.data.child_companions} invalid={Boolean(editForm.errors.child_companions)} onChange={(event) => editForm.setData('child_companions', Number(event.target.value || 0))} />
+                                <TextInput id="guest-edit-children" type="number" inputMode="numeric" min={0} max={5} value={editForm.data.child_companions} invalid={Boolean(editForm.errors.child_companions)} onChange={(event) => editForm.setData('child_companions', Number(event.target.value || 0))} />
                             </Field>
                         </div>
                     ) : (

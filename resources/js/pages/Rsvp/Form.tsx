@@ -1,14 +1,16 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo, type FormEvent } from 'react';
+import { useMemo, type FormEvent, type ReactNode } from 'react';
 import { Alert } from '../../components/feedback/Alert';
 import { FormErrorSummary } from '../../components/forms/FormErrorSummary';
 import { Field } from '../../components/forms/Field';
-import { TextInput } from '../../components/forms/controls';
+import { Checkbox, TextInput } from '../../components/forms/controls';
 import { Button } from '../../components/ui/Button';
 import { PublicLayout } from '../../layouts/PublicLayout';
 import { useLocale } from '../../hooks/use-locale';
-import type { RsvpAttendance, RsvpFormData, RsvpFormProps } from '../../types/rsvp';
+import type { RsvpAttendance, RsvpCompanion, RsvpFormData, RsvpFormProps } from '../../types/rsvp';
 import { formatDate, formatTime } from '../../utils/formatting';
+
+const maxCompanions = 5;
 
 export default function Form({ event, rsvp }: RsvpFormProps) {
     const { locale, t, tp } = useLocale();
@@ -17,6 +19,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
         attendance: rsvp.initial.attendance,
         adult_companions: String(rsvp.initial.adult_companions),
         child_companions: String(rsvp.initial.child_companions),
+        companions: rsvp.initial.companions,
         response_token: rsvp.response_token ?? '',
     });
 
@@ -25,12 +28,13 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
         const fieldIds: Partial<Record<keyof RsvpFormData, string>> = {
             name: 'rsvp-name',
             attendance: 'rsvp-attendance-confirmed',
-            adult_companions: 'rsvp-adult-companions',
-            child_companions: 'rsvp-child-companions',
+            adult_companions: 'rsvp-companions',
+            child_companions: 'rsvp-companions',
+            companions: 'rsvp-companions',
         };
 
         return Object.entries(form.errors).map(([field, message]) => ({
-            fieldId: fieldIds[field as keyof RsvpFormData] ?? 'rsvp-form-title',
+            fieldId: companionFieldId(field) ?? fieldIds[field as keyof RsvpFormData] ?? 'rsvp-form-title',
             message,
         }));
     }, [form.errors]);
@@ -39,18 +43,46 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
         form.setData((data) => ({
             ...data,
             attendance,
-            adult_companions: attendance === 'declined' ? '0' : data.adult_companions,
-            child_companions: attendance === 'declined' ? '0' : data.child_companions,
+            adult_companions: attendance === 'declined' ? '0' : String(adultCompanionCount(data.companions)),
+            child_companions: attendance === 'declined' ? '0' : String(childCompanionCount(data.companions)),
+            companions: attendance === 'declined' ? [] : data.companions,
+        }));
+    }
+
+    function addCompanion() {
+        if (form.data.companions.length >= maxCompanions) {
+            return;
+        }
+
+        updateCompanions([...form.data.companions, { name: '', is_child: false }]);
+    }
+
+    function updateCompanion(index: number, companion: RsvpCompanion) {
+        updateCompanions(form.data.companions.map((current, currentIndex) => (currentIndex === index ? companion : current)));
+    }
+
+    function removeCompanion(index: number) {
+        updateCompanions(form.data.companions.filter((_, currentIndex) => currentIndex !== index));
+    }
+
+    function updateCompanions(companions: RsvpCompanion[]) {
+        form.setData((data) => ({
+            ...data,
+            companions,
+            adult_companions: String(adultCompanionCount(companions)),
+            child_companions: String(childCompanionCount(companions)),
         }));
     }
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        const companions = form.data.attendance === 'declined' ? [] : form.data.companions;
 
         const data = {
             ...form.data,
-            adult_companions: form.data.attendance === 'declined' ? '0' : form.data.adult_companions,
-            child_companions: form.data.attendance === 'declined' ? '0' : form.data.child_companions,
+            companions,
+            adult_companions: form.data.attendance === 'declined' ? '0' : String(adultCompanionCount(companions)),
+            child_companions: form.data.attendance === 'declined' ? '0' : String(childCompanionCount(companions)),
         };
 
         form.transform(() => data);
@@ -64,8 +96,9 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
     }
 
     const title = rsvp.receipt ? t('rsvp.receipt.title') : t('rsvp.form.title');
-    const companionCount = numberValue(form.data.adult_companions) + numberValue(form.data.child_companions);
+    const companionCount = form.data.companions.length;
     const partySize = isConfirmed ? 1 + companionCount : 0;
+    const companionErrors = form.errors as Record<string, string | undefined>;
 
     return (
         <PublicLayout>
@@ -85,9 +118,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
 
                     {rsvp.receipt ? (
                         <div className="mt-6">
-                            <Alert title={t('rsvp.receipt.savedTitle')} tone="success">
-                                {receiptSummary(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)}
-                            </Alert>
+                            <Alert title={t('rsvp.receipt.savedTitle')} tone="success" />
                         </div>
                     ) : null}
 
@@ -116,6 +147,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                                     id="rsvp-attendance-confirmed"
                                     name="attendance"
                                     checked={form.data.attendance === 'confirmed'}
+                                    emoji="😁"
                                     title={t('rsvp.form.confirm')}
                                     description={t('rsvp.form.confirmDescription')}
                                     onChange={() => chooseAttendance('confirmed')}
@@ -124,6 +156,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                                     id="rsvp-attendance-declined"
                                     name="attendance"
                                     checked={form.data.attendance === 'declined'}
+                                    emoji="😔"
                                     title={t('rsvp.form.decline')}
                                     description={t('rsvp.form.declineDescription')}
                                     onChange={() => chooseAttendance('declined')}
@@ -133,16 +166,58 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                         </fieldset>
 
                         {isConfirmed ? (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Field id="rsvp-adult-companions" label={t('rsvp.form.adultCompanions')} help={t('rsvp.form.companionHelp')} error={form.errors.adult_companions}>
-                                    <TextInput id="rsvp-adult-companions" type="number" min={0} max={20} inputMode="numeric" value={form.data.adult_companions} invalid={Boolean(form.errors.adult_companions)} onChange={(change) => form.setData('adult_companions', change.target.value)} />
-                                </Field>
-                                <Field id="rsvp-child-companions" label={t('rsvp.form.childCompanions')} help={t('rsvp.form.companionHelp')} error={form.errors.child_companions}>
-                                    <TextInput id="rsvp-child-companions" type="number" min={0} max={20} inputMode="numeric" value={form.data.child_companions} invalid={Boolean(form.errors.child_companions)} onChange={(change) => form.setData('child_companions', change.target.value)} />
-                                </Field>
-                            </div>
-                        ) : form.data.attendance === 'declined' ? (
-                            <Alert title={t('rsvp.form.countsClearedTitle')} tone="info">{t('rsvp.form.countsClearedDescription')}</Alert>
+                            <section id="rsvp-companions" className="space-y-3" aria-labelledby="rsvp-companions-title">
+                                <div className="space-y-1">
+                                    <h2 id="rsvp-companions-title" className="text-sm font-semibold text-ink">{t('rsvp.form.companionsTitle')}</h2>
+                                    <p className="text-sm leading-6 text-muted">{t('rsvp.form.companionHelp')}</p>
+                                </div>
+
+                                {form.data.companions.map((companion, index) => {
+                                    const nameId = `rsvp-companion-${index}-name`;
+                                    const nameError = companionErrors[`companions.${index}.name`];
+
+                                    return (
+                                        <div key={index} className="rounded-lg border border-border bg-canvas p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <p className="text-sm font-semibold text-ink">{t('rsvp.form.companionNumber', { number: String(index + 1) })}</p>
+                                                <button type="button" onClick={() => removeCompanion(index)} className="inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-danger-ink hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                                    {t('rsvp.form.removeCompanion')}
+                                                </button>
+                                            </div>
+                                            <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-start">
+                                                <Field id={nameId} label={t('rsvp.form.companionName')} required error={nameError}>
+                                                    <TextInput
+                                                        id={nameId}
+                                                        value={companion.name}
+                                                        maxLength={120}
+                                                        invalid={Boolean(nameError)}
+                                                        onChange={(change) => updateCompanion(index, { ...companion, name: change.target.value })}
+                                                        autoComplete="name"
+                                                    />
+                                                </Field>
+                                                <div className="pt-1 sm:pt-8">
+                                                    <Checkbox
+                                                        label={t('rsvp.form.childCompanion')}
+                                                        checked={companion.is_child}
+                                                        onChange={(change) => updateCompanion(index, { ...companion, is_child: change.target.checked })}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {companionErrors.companions ? <p className="text-sm font-medium text-danger-ink" role="alert">{companionErrors.companions}</p> : null}
+
+                                {form.data.companions.length < maxCompanions ? (
+                                    <button type="button" onClick={addCompanion} className="flex min-h-24 w-full items-center justify-between gap-4 rounded-xl border border-border-strong bg-surface px-5 py-4 text-left transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                        <span className="text-base font-semibold text-ink">{t('rsvp.form.addCompanion')}</span>
+                                        <span aria-hidden="true" className="text-4xl font-light leading-none text-focus">+</span>
+                                    </button>
+                                ) : (
+                                    <Alert title={t('rsvp.form.companionLimitTitle')} tone="info">{t('rsvp.form.companionLimitDescription')}</Alert>
+                                )}
+                            </section>
                         ) : null}
 
                         <div className="rounded-lg bg-canvas p-4 text-sm text-muted">
@@ -159,7 +234,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                 <aside className="min-w-0 space-y-4 lg:sticky lg:top-6">
                     <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-event-title">
                         <h2 id="rsvp-event-title" className="text-lg font-semibold text-ink">{event.name}</h2>
-                        {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{event.theme}</p> : null}
+                        {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{t('theme.label')}: {event.theme}</p> : null}
                         <dl className="mt-4 space-y-3 text-sm">
                             <div>
                                 <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
@@ -175,15 +250,14 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                     {rsvp.receipt ? (
                         <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-receipt-title">
                             <h2 id="rsvp-receipt-title" className="text-base font-semibold text-ink">{t('rsvp.receipt.summaryTitle')}</h2>
-                            <dl className="mt-4 space-y-3 text-sm">
+                            <p className="mt-5 text-sm font-semibold text-ink">
+                                <span aria-hidden="true">✓ </span>{statusLabel(rsvp.receipt.status, t)}
+                            </p>
+                            <dl className="mt-5 space-y-5 text-sm">
                                 <ReceiptRow label={t('rsvp.receipt.guest')} value={rsvp.receipt.name} />
-                                <ReceiptRow label={t('rsvp.receipt.status')} value={statusLabel(rsvp.receipt.status, t)} />
-                                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptSummary(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)} />
+                                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptPartySize(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)} />
                                 <ReceiptRow label={t('rsvp.receipt.updatedAt')} value={`${formatDate(rsvp.receipt.updated_at, locale, event.timezone)} · ${formatTime(rsvp.receipt.updated_at, locale, event.timezone)}`} />
                             </dl>
-                            <a href="#rsvp-form-title" className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                                {t('rsvp.receipt.updateAction')}
-                            </a>
                         </section>
                     ) : null}
                 </aside>
@@ -192,7 +266,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
     );
 }
 
-function AttendanceOption({ id, name, checked, title, description, onChange }: { id: string; name: string; checked: boolean; title: string; description: string; onChange: () => void }) {
+function AttendanceOption({ id, name, checked, emoji, title, description, onChange }: { id: string; name: string; checked: boolean; emoji: string; title: string; description: string; onChange: () => void }) {
     return (
         <label htmlFor={id} className={`block min-h-24 cursor-pointer rounded-lg border p-4 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${checked ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong'}`}>
             <input id={id} type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
@@ -201,7 +275,7 @@ function AttendanceOption({ id, name, checked, title, description, onChange }: {
                     {checked ? <span className="size-2.5 rounded-full bg-ink" /> : null}
                 </span>
                 <span className="min-w-0">
-                    <span className="block text-base font-semibold text-ink">{title}</span>
+                    <span className="block text-base font-semibold text-ink">{title} <span aria-hidden="true">{emoji}</span></span>
                     <span className="mt-1 block text-sm leading-6 text-muted">{description}</span>
                 </span>
             </span>
@@ -213,14 +287,19 @@ function ReceiptRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <dt className="font-semibold text-ink">{label}</dt>
-            <dd className="mt-1 break-words text-muted">{value}</dd>
+            <dd className="mt-1 break-words text-ink">{value}</dd>
         </div>
     );
 }
 
-function partySummary(attendance: RsvpAttendance | '', partySize: number, companionCount: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
+function partySummary(attendance: RsvpAttendance | '', partySize: number, companionCount: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): ReactNode {
     if (attendance === 'declined') {
-        return t('rsvp.summary.declined');
+        return (
+            <>
+                <span>{t('rsvp.summary.declined')}</span>
+                <span className="mt-1 block">{t('rsvp.summary.changeAllowed')}</span>
+            </>
+        );
     }
 
     if (attendance === 'confirmed') {
@@ -233,20 +312,28 @@ function partySummary(attendance: RsvpAttendance | '', partySize: number, compan
     return t('rsvp.summary.pending');
 }
 
-function receiptSummary(status: RsvpAttendance, partySize: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
+function receiptPartySize(status: RsvpAttendance, partySize: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): string {
     if (status === 'declined') {
         return t('rsvp.receipt.declined');
     }
 
-    return t('rsvp.receipt.confirmed', { party: tp('guests.count', partySize) });
+    return tp('guests.count', partySize);
 }
 
 function statusLabel(status: RsvpAttendance, t: ReturnType<typeof useLocale>['t']): string {
     return status === 'confirmed' ? t('guests.status.confirmed') : t('guests.status.declined');
 }
 
-function numberValue(value: string): number {
-    const parsed = Number(value);
+function adultCompanionCount(companions: RsvpCompanion[]): number {
+    return companions.filter((companion) => !companion.is_child).length;
+}
 
-    return Number.isFinite(parsed) ? parsed : 0;
+function childCompanionCount(companions: RsvpCompanion[]): number {
+    return companions.filter((companion) => companion.is_child).length;
+}
+
+function companionFieldId(field: string): string | undefined {
+    const match = /^companions\.(\d+)\.name$/.exec(field);
+
+    return match ? `rsvp-companion-${match[1]}-name` : undefined;
 }

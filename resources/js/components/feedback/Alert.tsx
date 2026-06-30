@@ -8,11 +8,11 @@ const toneClasses: Record<Tone, string> = {
     error: 'bg-danger-soft text-danger-ink',
 };
 
-export function Alert({ title, children, tone = 'info' }: { title: string; children: ReactNode; tone?: Tone }) {
+export function Alert({ title, children, tone = 'info' }: { title: string; children?: ReactNode; tone?: Tone }) {
     return (
         <div className={`rounded-lg p-4 ${toneClasses[tone]}`} role={tone === 'error' ? 'alert' : 'status'}>
             <p className="font-semibold">{title}</p>
-            <div className="mt-1 text-sm leading-6">{children}</div>
+            {children ? <div className="mt-1 text-sm leading-6">{children}</div> : null}
         </div>
     );
 }
