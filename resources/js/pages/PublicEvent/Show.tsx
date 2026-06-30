@@ -72,11 +72,6 @@ export default function Show({ event, meta }: { event: PublicEventDetail; meta: 
                             </div>
                         )}
                     </section>
-
-                    <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="public-event-share-title">
-                        <h2 id="public-event-share-title" className="text-base font-semibold text-ink">{t('publicEvent.linkTitle')}</h2>
-                        <p className="mt-2 break-all text-sm leading-6 text-muted">{event.canonical_url}</p>
-                    </section>
                 </aside>
             </main>
         </PublicLayout>
