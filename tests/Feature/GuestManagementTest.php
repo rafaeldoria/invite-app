@@ -63,11 +63,11 @@ class GuestManagementTest extends TestCase
                 ->where('event.name', $event->name)
                 ->has('guests.data', 1)
                 ->where('guests.data.0.name', 'Alex Guest')
+                ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
                 ->where('guests.data.0.status', 'pending')
                 ->where('guests.data.0.companion_count', 0)
                 ->has('guests.data.0.companions', 0)
                 ->missing('guests.data.0.id')
-                ->missing('guests.data.0.invitation_url')
                 ->missing('guests.data.0.invitation_token')
                 ->missing('guests.data.0.response_token_hash'));
 
@@ -271,7 +271,7 @@ class GuestManagementTest extends TestCase
         ]);
     }
 
-    public function test_guest_list_returns_named_companions_without_invitation_links(): void
+    public function test_guest_list_returns_named_companions_without_full_list_on_regular_view(): void
     {
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
@@ -291,19 +291,51 @@ class GuestManagementTest extends TestCase
                 ->where('guests.data.0.companions.0.is_child', false)
                 ->where('guests.data.0.companions.1.name', 'Child Companion')
                 ->where('guests.data.0.companions.1.is_child', true)
-                ->has('fullGuestList', 3)
+                ->has('fullGuestList', 0)
+                ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
+            );
+    }
+
+    public function test_full_guest_list_includes_named_and_count_only_companions(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $alex = Guest::factory()->for($event)->confirmed(2, 1)->create(['name' => 'Alex Guest']);
+        $zoe = Guest::factory()->for($event)->pending()->create(['name' => 'Zoe Guest']);
+
+        GuestCompanion::factory()->for($alex)->create(['name' => 'Named Adult']);
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'full')
+                ->has('fullGuestList', 5)
                 ->where('fullGuestList.0.name', 'Alex Guest')
                 ->where('fullGuestList.0.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.0.is_child', false)
                 ->where('fullGuestList.0.is_primary', true)
-                ->where('fullGuestList.1.name', 'Adult Companion')
+                ->where('fullGuestList.0.is_named', true)
+                ->where('fullGuestList.1.name', 'Named Adult')
                 ->where('fullGuestList.1.primary_guest', 'Alex Guest')
                 ->where('fullGuestList.1.is_child', false)
                 ->where('fullGuestList.1.is_primary', false)
-                ->where('fullGuestList.2.name', 'Child Companion')
+                ->where('fullGuestList.1.is_named', true)
+                ->where('fullGuestList.2.name', null)
                 ->where('fullGuestList.2.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.2.is_child', true)
+                ->where('fullGuestList.2.is_child', false)
                 ->where('fullGuestList.2.is_primary', false)
-                ->missing('guests.data.0.invitation_url')
+                ->where('fullGuestList.2.is_named', false)
+                ->where('fullGuestList.3.name', null)
+                ->where('fullGuestList.3.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.3.is_child', true)
+                ->where('fullGuestList.3.is_primary', false)
+                ->where('fullGuestList.3.is_named', false)
+                ->where('fullGuestList.4.name', $zoe->name)
+                ->where('fullGuestList.4.is_primary', true)
+                ->where('fullGuestList.4.is_named', true)
+                ->missing('fullGuestList.0.invitation_url')
+                ->missing('fullGuestList.0.invitation_token')
             );
     }
 
@@ -326,7 +358,8 @@ class GuestManagementTest extends TestCase
                 ->where('guests.per_page', 20)
                 ->where('guests.current_page', 1)
                 ->where('guests.last_page', 2)
-                ->where('guests.data.0.name', 'Alpha'));
+                ->where('guests.data.0.name', 'Alpha')
+                ->has('fullGuestList', 0));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => GuestStatus::Confirmed->value]))
@@ -335,7 +368,8 @@ class GuestManagementTest extends TestCase
                 ->where('filters.status', 'confirmed')
                 ->where('filters.view', null)
                 ->where('guests.total', 1)
-                ->where('guests.data.0.name', 'Charlie'));
+                ->where('guests.data.0.name', 'Charlie')
+                ->has('fullGuestList', 0));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
@@ -345,6 +379,7 @@ class GuestManagementTest extends TestCase
                 ->where('filters.view', 'full')
                 ->has('fullGuestList', 23)
                 ->where('fullGuestList.0.name', 'Alpha')
+                ->where('fullGuestList.0.is_named', true)
                 ->missing('fullGuestList.0.invitation_url')
                 ->missing('fullGuestList.0.invitation_token'));
 
@@ -392,20 +427,21 @@ class GuestManagementTest extends TestCase
         $this->get($url)->assertNotFound();
     }
 
-    public function test_guest_index_does_not_expose_invitation_urls(): void
+    public function test_guest_index_exposes_canonical_invitation_urls_without_internal_token_fields(): void
     {
         config()->set('app.url', 'https://events.example.com');
 
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
-        Guest::factory()->for($event)->create(['name' => 'Trusted Link Guest']);
+        $guest = Guest::factory()->for($event)->create(['name' => 'Trusted Link Guest']);
 
         $this->actingAs($user)
             ->withHeader('Host', 'attacker.test')
             ->get(route('events.guests.index', $event))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->missing('guests.data.0.invitation_url')
+                ->where('guests.data.0.invitation_url', 'https://events.example.com/e/'.$event->public_id.'/invitation/'.$guest->invitation_token)
+                ->where('guests.data.0.invitation_url', fn (string $url): bool => ! str_contains($url, 'attacker.test'))
                 ->missing('guests.data.0.invitation_token'));
     }
 

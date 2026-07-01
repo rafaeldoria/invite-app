@@ -22,27 +22,6 @@ class EventDashboardController extends Controller
             ->selectRaw('SUM(CASE WHEN status = ? THEN 1 + adult_companions + child_companions ELSE 0 END) as expected_attendees', [GuestStatus::Confirmed->value])
             ->first();
 
-        $fullGuestList = $event->guests()
-            ->with('companions')
-            ->orderBy('name')
-            ->orderBy('id')
-            ->get()
-            ->flatMap(fn ($guest) => [
-                [
-                    'name' => $guest->name,
-                    'primary_guest' => $guest->name,
-                    'is_child' => false,
-                    'is_primary' => true,
-                ],
-                ...$guest->companions->map(fn ($companion): array => [
-                    'name' => $companion->name,
-                    'primary_guest' => $guest->name,
-                    'is_child' => $companion->is_child,
-                    'is_primary' => false,
-                ])->all(),
-            ])
-            ->values();
-
         return Inertia::render('Events/Dashboard', [
             'event' => [
                 'name' => $event->name,
@@ -58,7 +37,6 @@ class EventDashboardController extends Controller
                 'pending' => (int) ($summary->pending ?? 0),
                 'expected_attendees' => (int) ($summary->expected_attendees ?? 0),
             ],
-            'fullGuestList' => $fullGuestList,
             'links' => [
                 'guests' => [
                     'all' => route('events.guests.index', $event),

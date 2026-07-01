@@ -135,39 +135,22 @@ class EventDashboardTest extends TestCase
                 ])));
     }
 
-    public function test_dashboard_returns_full_guest_list_with_named_companions(): void
+    public function test_dashboard_does_not_eager_load_full_guest_list_payload(): void
     {
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
-        $otherEvent = Event::factory()->create();
 
         $alex = Guest::factory()->for($event)->confirmed(1, 1)->create(['name' => 'Alex Guest']);
-        $zoe = Guest::factory()->for($event)->pending()->create(['name' => 'Zoe Guest']);
-        $otherGuest = Guest::factory()->for($otherEvent)->confirmed(1)->create(['name' => 'Other Guest']);
 
         GuestCompanion::factory()->for($alex)->create(['name' => 'Adult Companion']);
         GuestCompanion::factory()->for($alex)->child()->create(['name' => 'Child Companion']);
-        GuestCompanion::factory()->for($otherGuest)->create(['name' => 'Hidden Companion']);
 
         $this->actingAs($user)
             ->get(route('events.dashboard', $event))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('fullGuestList', 4)
-                ->where('fullGuestList.0.name', 'Alex Guest')
-                ->where('fullGuestList.0.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.0.is_child', false)
-                ->where('fullGuestList.0.is_primary', true)
-                ->where('fullGuestList.1.name', 'Adult Companion')
-                ->where('fullGuestList.1.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.1.is_child', false)
-                ->where('fullGuestList.1.is_primary', false)
-                ->where('fullGuestList.2.name', 'Child Companion')
-                ->where('fullGuestList.2.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.2.is_child', true)
-                ->where('fullGuestList.2.is_primary', false)
-                ->where('fullGuestList.3.name', $zoe->name)
-                ->missing('fullGuestList.4')
+                ->where('metrics.expected_attendees', 3)
+                ->missing('fullGuestList')
             );
     }
 

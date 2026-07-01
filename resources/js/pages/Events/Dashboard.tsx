@@ -1,9 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import { Button, ButtonLink } from '../../components/ui/Button';
+import { ButtonLink } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Dialog } from '../../components/ui/Dialog';
 import { AuthenticatedLayout } from '../../layouts/AuthenticatedLayout';
 import { useLocale } from '../../hooks/use-locale';
 import type { TranslationKey } from '../../locales';
@@ -18,14 +16,6 @@ type DashboardMetrics = {
 };
 
 type DashboardMetricKey = keyof Pick<DashboardMetrics, 'total' | GuestStatus>;
-type FullGuestListSort = 'guest' | 'alphabetical' | 'child';
-
-type FullGuestListItem = {
-    name: string;
-    primary_guest: string;
-    is_child: boolean;
-    is_primary: boolean;
-};
 
 type Props = {
     event: {
@@ -36,7 +26,6 @@ type Props = {
         };
     };
     metrics: DashboardMetrics;
-    fullGuestList: FullGuestListItem[];
     links: {
         guests: Record<'all' | GuestStatus, string>;
     };
@@ -51,18 +40,10 @@ const toneClasses: Record<DashboardMetricKey, string> = {
     pending: 'bg-warning-ink',
 };
 
-const sortOptions: FullGuestListSort[] = ['guest', 'alphabetical', 'child'];
-
-export default function Dashboard({ event, metrics, fullGuestList, links }: Props) {
+export default function Dashboard({ event, metrics, links }: Props) {
     const { locale, t } = useLocale();
-    const [fullListOpen, setFullListOpen] = useState(false);
-    const [fullListSort, setFullListSort] = useState<FullGuestListSort>('guest');
     const formatter = new Intl.NumberFormat(locale);
     const hasGuests = metrics.total > 0;
-    const sortedFullGuestList = useMemo(
-        () => sortFullGuestList(fullGuestList, fullListSort),
-        [fullGuestList, fullListSort],
-    );
 
     function cardHref(key: DashboardMetricKey): string {
         return key === 'total' ? links.guests.all : links.guests[key];
@@ -104,9 +85,9 @@ export default function Dashboard({ event, metrics, fullGuestList, links }: Prop
                                     {' '}
                                     <span className="ml-2 text-muted">{t('dashboard.expectedAttendees')}</span>
                                 </div>
-                                <Button type="button" variant="secondary" onClick={() => setFullListOpen(true)} disabled={fullGuestList.length === 0}>
+                                <ButtonLink href={`${event.links.guests}?view=full`} variant="secondary">
                                     {t('dashboard.fullList.action')}
-                                </Button>
+                                </ButtonLink>
                             </div>
                         ) : null}
                     </div>
@@ -149,77 +130,6 @@ export default function Dashboard({ event, metrics, fullGuestList, links }: Prop
                     </Card>
                 ) : null}
             </main>
-
-            <Dialog
-                open={fullListOpen}
-                onClose={() => setFullListOpen(false)}
-                title={t('dashboard.fullList.title')}
-                description={t('dashboard.fullList.description')}
-                cancelLabel={t('dashboard.fullList.close')}
-            >
-                <div className="mt-5 space-y-4">
-                    <div>
-                        <p className="mb-2 text-sm font-semibold text-ink">{t('dashboard.fullList.sortLabel')}</p>
-                        <div className="flex flex-wrap gap-2">
-                            {sortOptions.map((option) => (
-                                <button
-                                    key={option}
-                                    type="button"
-                                    onClick={() => setFullListSort(option)}
-                                    className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${fullListSort === option ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
-                                    aria-pressed={fullListSort === option}
-                                >
-                                    {t(`dashboard.fullList.sort.${option}` as TranslationKey)}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {sortedFullGuestList.length > 0 ? (
-                        <ul className="max-h-[55vh] divide-y divide-border overflow-y-auto rounded-lg border border-border" aria-label={t('dashboard.fullList.listLabel')}>
-                            {sortedFullGuestList.map((item, index) => (
-                                <li key={`${item.primary_guest}-${item.name}-${index}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                                    <div className="min-w-0">
-                                        <p className="break-words text-sm font-semibold text-ink">{item.name}</p>
-                                        {!item.is_primary ? (
-                                            <p className="mt-1 break-words text-xs text-muted">{t('dashboard.fullList.primaryGuest', { name: item.primary_guest })}</p>
-                                        ) : null}
-                                    </div>
-                                    <span className="w-fit rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
-                                        {item.is_child ? t('dashboard.fullList.child') : t('dashboard.fullList.adult')}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
-                            {t('dashboard.fullList.empty')}
-                        </p>
-                    )}
-                </div>
-            </Dialog>
         </AuthenticatedLayout>
     );
-}
-
-function sortFullGuestList(items: FullGuestListItem[], sort: FullGuestListSort): FullGuestListItem[] {
-    const sorted = [...items];
-
-    return sorted.sort((a, b) => {
-        if (sort === 'child' && a.is_child !== b.is_child) {
-            return a.is_child ? -1 : 1;
-        }
-
-        if (sort === 'guest') {
-            const guestCompare = compareText(a.primary_guest, b.primary_guest);
-            if (guestCompare !== 0) return guestCompare;
-            if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
-        }
-
-        return compareText(a.name, b.name);
-    });
-}
-
-function compareText(a: string, b: string): number {
-    return a.localeCompare(b, undefined, { sensitivity: 'base' });
 }

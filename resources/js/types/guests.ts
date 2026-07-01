@@ -11,14 +11,16 @@ export type GuestCompanion = {
 };
 
 export type FullGuestListItem = {
-    name: string;
+    name: string | null;
     primary_guest: string;
     is_child: boolean;
     is_primary: boolean;
+    is_named: boolean;
 };
 
 export type GuestListItem = {
     name: string;
+    invitation_url: string;
     status: GuestStatus;
     adult_companions: number;
     child_companions: number;

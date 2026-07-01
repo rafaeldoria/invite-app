@@ -142,6 +142,20 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
         });
     }
 
+    async function copyInvitation(guest: GuestListItem) {
+        if (!navigator.clipboard) {
+            setFeedback({ tone: 'error', message: t('guests.feedback.copyError') });
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(guest.invitation_url);
+            setFeedback({ tone: 'success', message: t('guests.feedback.copySuccess', { name: guest.name }) });
+        } catch {
+            setFeedback({ tone: 'error', message: t('guests.feedback.copyError') });
+        }
+    }
+
     function filterHref(status: GuestStatus | 'all') {
         return status === 'all' ? event.links.guests : `${event.links.guests}?status=${status}`;
     }
@@ -226,7 +240,10 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                                                 </div>
                                                 <p className="text-sm leading-6 text-muted">{companionSummary(guest, t, tp)}</p>
                                             </div>
-                                            <div className="grid gap-2 sm:grid-cols-3 lg:w-auto lg:min-w-[28rem]">
+                                            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 xl:w-auto xl:min-w-[36rem]">
+                                                <Button type="button" variant="secondary" onClick={() => void copyInvitation(guest)} aria-label={t('guests.actions.copyInvitationFor', { name: guest.name })}>
+                                                    {t('guests.actions.copyInvitation')}
+                                                </Button>
                                                 <Button type="button" variant="secondary" onClick={() => setCompanionGuest(guest)} aria-label={t('guests.actions.companionsFor', { name: guest.name })}>
                                                     {t('guests.actions.companions')}
                                                 </Button>
@@ -413,7 +430,7 @@ function FullGuestListView({
                     {items.map((item, index) => (
                         <li key={`${item.primary_guest}-${item.name}-${index}`} className="grid gap-3 rounded-xl bg-surface p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
                             <div className="min-w-0">
-                                <p className="break-words text-base font-semibold text-ink">{item.name}</p>
+                                <p className="break-words text-base font-semibold text-ink">{fullListDisplayName(item, t)}</p>
                                 {!item.is_primary ? (
                                     <p className="mt-1 break-words text-sm text-muted">{t('dashboard.fullList.primaryGuest', { name: item.primary_guest })}</p>
                                 ) : null}
@@ -476,8 +493,20 @@ function sortFullGuestList(items: FullGuestListItem[], sort: FullGuestListSort):
             if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
         }
 
-        return compareText(a.name, b.name);
+        return compareText(sortableFullListName(a), sortableFullListName(b));
     });
+}
+
+function fullListDisplayName(item: FullGuestListItem, t: ReturnType<typeof useLocale>['t']): string {
+    if (item.name) {
+        return item.name;
+    }
+
+    return item.is_child ? t('dashboard.fullList.unnamedChild') : t('dashboard.fullList.unnamedAdult');
+}
+
+function sortableFullListName(item: FullGuestListItem): string {
+    return item.name ?? `${item.primary_guest} ${item.is_child ? 'child' : 'adult'}`;
 }
 
 function compareText(a: string, b: string): number {
