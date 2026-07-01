@@ -16,6 +16,7 @@ import type { TranslationKey } from '../../locales';
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
 type FullGuestListSort = 'guest' | 'alphabetical' | 'child';
+type GuestListView = 'full';
 
 type Props = {
     event: {
@@ -29,6 +30,7 @@ type Props = {
     fullGuestList: FullGuestListItem[];
     filters: {
         status: GuestStatus | null;
+        view: GuestListView | null;
     };
     statusOptions: GuestStatusOption[];
     links: {
@@ -51,7 +53,6 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
     const [editingGuest, setEditingGuest] = useState<GuestListItem | null>(null);
     const [deletingGuest, setDeletingGuest] = useState<GuestListItem | null>(null);
     const [companionGuest, setCompanionGuest] = useState<GuestListItem | null>(null);
-    const [fullListOpen, setFullListOpen] = useState(false);
     const [fullListSort, setFullListSort] = useState<FullGuestListSort>('guest');
     const [feedback, setFeedback] = useState<Feedback>(null);
 
@@ -69,8 +70,9 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
     ].filter((error): error is { fieldId: string; message: string } => error !== null);
 
     const selectedFilter = filters.status ?? 'all';
+    const isFullList = filters.view === 'full';
     const hasGuests = guests.data.length > 0;
-    const isFiltered = filters.status !== null;
+    const isFiltered = filters.status !== null && !isFullList;
     const sortedFullGuestList = useMemo(
         () => sortFullGuestList(fullGuestList, fullListSort),
         [fullGuestList, fullListSort],
@@ -144,6 +146,10 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
         return status === 'all' ? event.links.guests : `${event.links.guests}?status=${status}`;
     }
 
+    function fullListHref() {
+        return `${event.links.guests}?view=full`;
+    }
+
     return (
         <AuthenticatedLayout>
             <Head title={t('guests.index.title')} />
@@ -176,28 +182,30 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                         <div>
                             <h2 id="guest-list-title" className="text-lg font-semibold text-ink">{t('guests.index.listTitle')}</h2>
                             <p className="mt-1 text-sm text-muted">
-                                {guests.total > 0
+                                {isFullList
+                                    ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                    : guests.total > 0
                                     ? t('guests.index.listSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
                                     : t('guests.index.noGuestsSummary')}
                             </p>
                         </div>
                         <nav className="flex flex-wrap gap-2" aria-label={t('guests.index.filterLabel')}>
-                            <FilterLink href={filterHref('all')} active={selectedFilter === 'all'} label={t('guests.filter.all')} />
+                            <FilterLink href={filterHref('all')} active={!isFullList && selectedFilter === 'all'} label={t('guests.filter.all')} />
                             {statusOptions.map((option) => (
-                                <FilterLink key={option.value} href={filterHref(option.value)} active={selectedFilter === option.value} label={t(option.label_key as TranslationKey)} />
+                                <FilterLink key={option.value} href={filterHref(option.value)} active={!isFullList && selectedFilter === option.value} label={t(option.label_key as TranslationKey)} />
                             ))}
-                            <button
-                                type="button"
-                                onClick={() => setFullListOpen(true)}
-                                disabled={fullGuestList.length === 0}
-                                className="inline-flex min-h-11 items-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-55"
-                            >
-                                {t('dashboard.fullList.action')}
-                            </button>
+                            <FilterLink href={fullListHref()} active={isFullList} label={t('dashboard.fullList.action')} />
                         </nav>
                     </div>
 
-                    {!hasGuests ? (
+                    {isFullList ? (
+                        <FullGuestListView
+                            items={sortedFullGuestList}
+                            sort={fullListSort}
+                            onSortChange={setFullListSort}
+                            t={t}
+                        />
+                    ) : !hasGuests ? (
                         <Card className="mt-6">
                             <EmptyState
                                 title={isFiltered ? t('guests.index.filterEmptyTitle') : t('guests.index.emptyTitle')}
@@ -360,55 +368,68 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                 </div>
             </Dialog>
 
-            <Dialog
-                open={fullListOpen}
-                onClose={() => setFullListOpen(false)}
-                title={t('dashboard.fullList.title')}
-                description={t('dashboard.fullList.description')}
-                cancelLabel={t('dashboard.fullList.close')}
-            >
-                <div className="mt-5 space-y-4">
-                    <div>
-                        <p className="mb-2 text-sm font-semibold text-ink">{t('dashboard.fullList.sortLabel')}</p>
-                        <div className="flex flex-wrap gap-2">
-                            {fullListSortOptions.map((option) => (
-                                <button
-                                    key={option}
-                                    type="button"
-                                    onClick={() => setFullListSort(option)}
-                                    className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${fullListSort === option ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
-                                    aria-pressed={fullListSort === option}
-                                >
-                                    {t(`dashboard.fullList.sort.${option}` as TranslationKey)}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {sortedFullGuestList.length > 0 ? (
-                        <ul className="max-h-[55vh] divide-y divide-border overflow-y-auto rounded-lg border border-border" aria-label={t('dashboard.fullList.listLabel')}>
-                            {sortedFullGuestList.map((item, index) => (
-                                <li key={`${item.primary_guest}-${item.name}-${index}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                                    <div className="min-w-0">
-                                        <p className="break-words text-sm font-semibold text-ink">{item.name}</p>
-                                        {!item.is_primary ? (
-                                            <p className="mt-1 break-words text-xs text-muted">{t('dashboard.fullList.primaryGuest', { name: item.primary_guest })}</p>
-                                        ) : null}
-                                    </div>
-                                    <span className="w-fit rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
-                                        {item.is_child ? t('dashboard.fullList.child') : t('dashboard.fullList.adult')}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
-                            {t('dashboard.fullList.empty')}
-                        </p>
-                    )}
-                </div>
-            </Dialog>
         </AuthenticatedLayout>
+    );
+}
+
+function FullGuestListView({
+    items,
+    sort,
+    onSortChange,
+    t,
+}: {
+    items: FullGuestListItem[];
+    sort: FullGuestListSort;
+    onSortChange: (sort: FullGuestListSort) => void;
+    t: ReturnType<typeof useLocale>['t'];
+}) {
+    return (
+        <div className="mt-6 space-y-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 className="text-base font-semibold text-ink">{t('dashboard.fullList.title')}</h3>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">{t('dashboard.fullList.description')}</p>
+                </div>
+                <div className="sm:text-right">
+                    <p className="mb-2 text-sm font-semibold text-ink">{t('dashboard.fullList.sortLabel')}</p>
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                        {fullListSortOptions.map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => onSortChange(option)}
+                                className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${sort === option ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
+                                aria-pressed={sort === option}
+                            >
+                                {t(`dashboard.fullList.sort.${option}` as TranslationKey)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {items.length > 0 ? (
+                <ul className="grid gap-3" aria-label={t('dashboard.fullList.listLabel')}>
+                    {items.map((item, index) => (
+                        <li key={`${item.primary_guest}-${item.name}-${index}`} className="grid gap-3 rounded-xl bg-surface p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+                            <div className="min-w-0">
+                                <p className="break-words text-base font-semibold text-ink">{item.name}</p>
+                                {!item.is_primary ? (
+                                    <p className="mt-1 break-words text-sm text-muted">{t('dashboard.fullList.primaryGuest', { name: item.primary_guest })}</p>
+                                ) : null}
+                            </div>
+                            <span className="w-fit rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
+                                {item.is_child ? t('dashboard.fullList.child') : t('dashboard.fullList.adult')}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
+                    {t('dashboard.fullList.empty')}
+                </p>
+            )}
+        </div>
     );
 }
 

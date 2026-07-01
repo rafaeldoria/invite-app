@@ -285,6 +285,7 @@ class GuestManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('guests.data.0.name', 'Alex Guest')
+                ->where('filters.view', null)
                 ->has('guests.data.0.companions', 2)
                 ->where('guests.data.0.companions.0.name', 'Adult Companion')
                 ->where('guests.data.0.companions.0.is_child', false)
@@ -332,11 +333,27 @@ class GuestManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', 'confirmed')
+                ->where('filters.view', null)
                 ->where('guests.total', 1)
                 ->where('guests.data.0.name', 'Charlie'));
 
         $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.status', null)
+                ->where('filters.view', 'full')
+                ->has('fullGuestList', 23)
+                ->where('fullGuestList.0.name', 'Alpha')
+                ->missing('fullGuestList.0.invitation_url')
+                ->missing('fullGuestList.0.invitation_token'));
+
+        $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => 'maybe']))
+            ->assertNotFound();
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'modal']))
             ->assertNotFound();
     }
 

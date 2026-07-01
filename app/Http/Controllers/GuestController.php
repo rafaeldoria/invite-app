@@ -24,7 +24,9 @@ class GuestController extends Controller
     {
         Gate::authorize('view', $event);
 
+        $view = $this->viewFilter($request);
         $status = $this->statusFilter($request);
+        $status = $view === 'full' ? null : $status;
 
         $guests = $event->guests()
             ->with('companions')
@@ -79,6 +81,7 @@ class GuestController extends Controller
             'fullGuestList' => $fullGuestList,
             'filters' => [
                 'status' => $status?->value,
+                'view' => $view,
             ],
             'statusOptions' => $this->guests->statusOptions(),
             'links' => [
@@ -138,6 +141,19 @@ class GuestController extends Controller
         abort_unless($status !== null, 404);
 
         return $status;
+    }
+
+    private function viewFilter(Request $request): ?string
+    {
+        $value = $request->query('view');
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        abort_unless($value === 'full', 404);
+
+        return $value;
     }
 
     private function ensureGuestBelongsToEvent(Event $event, Guest $guest): void
