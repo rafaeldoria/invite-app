@@ -46,6 +46,27 @@ class GuestController extends Controller
 
         $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
 
+        $fullGuestList = $event->guests()
+            ->with('companions')
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get()
+            ->flatMap(fn (Guest $guest) => [
+                [
+                    'name' => $guest->name,
+                    'primary_guest' => $guest->name,
+                    'is_child' => false,
+                    'is_primary' => true,
+                ],
+                ...$guest->companions->map(fn ($companion): array => [
+                    'name' => $companion->name,
+                    'primary_guest' => $guest->name,
+                    'is_child' => $companion->is_child,
+                    'is_primary' => false,
+                ])->all(),
+            ])
+            ->values();
+
         return Inertia::render('Guests/Index', [
             'event' => [
                 'name' => $event->name,
@@ -55,6 +76,7 @@ class GuestController extends Controller
                 ],
             ],
             'guests' => $guests,
+            'fullGuestList' => $fullGuestList,
             'filters' => [
                 'status' => $status?->value,
             ],

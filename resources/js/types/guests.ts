@@ -10,6 +10,13 @@ export type GuestCompanion = {
     is_child: boolean;
 };
 
+export type FullGuestListItem = {
+    name: string;
+    primary_guest: string;
+    is_child: boolean;
+    is_primary: boolean;
+};
+
 export type GuestListItem = {
     name: string;
     status: GuestStatus;

@@ -290,6 +290,18 @@ class GuestManagementTest extends TestCase
                 ->where('guests.data.0.companions.0.is_child', false)
                 ->where('guests.data.0.companions.1.name', 'Child Companion')
                 ->where('guests.data.0.companions.1.is_child', true)
+                ->has('fullGuestList', 3)
+                ->where('fullGuestList.0.name', 'Alex Guest')
+                ->where('fullGuestList.0.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.0.is_primary', true)
+                ->where('fullGuestList.1.name', 'Adult Companion')
+                ->where('fullGuestList.1.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.1.is_child', false)
+                ->where('fullGuestList.1.is_primary', false)
+                ->where('fullGuestList.2.name', 'Child Companion')
+                ->where('fullGuestList.2.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.2.is_child', true)
+                ->where('fullGuestList.2.is_primary', false)
                 ->missing('guests.data.0.invitation_url')
             );
     }
@@ -393,7 +405,7 @@ class GuestManagementTest extends TestCase
             ->get(route('events.guests.index', $event))
             ->assertOk();
 
-        $this->assertLessThanOrEqual(5, count(DB::getQueryLog()));
+        $this->assertLessThanOrEqual(7, count(DB::getQueryLog()));
 
         DB::disableQueryLog();
     }
