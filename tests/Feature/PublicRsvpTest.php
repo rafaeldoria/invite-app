@@ -498,6 +498,33 @@ class PublicRsvpTest extends TestCase
             ])->assertRedirect();
     }
 
+    public function test_public_rsvp_create_page_is_rate_limited(): void
+    {
+        config()->set('app.env', 'production');
+
+        $event = Event::factory()->create();
+
+        for ($attempt = 0; $attempt < 12; $attempt++) {
+            $this->get(route('public.rsvp.create', $event))->assertOk();
+        }
+
+        $this->get(route('public.rsvp.create', $event))->assertTooManyRequests();
+    }
+
+    public function test_public_invitation_capability_views_are_rate_limited(): void
+    {
+        config()->set('app.env', 'production');
+
+        $event = Event::factory()->create();
+        $token = Str::random(48);
+
+        for ($attempt = 0; $attempt < 12; $attempt++) {
+            $this->get(route('public.invitations.show', [$event, $token]))->assertNotFound();
+        }
+
+        $this->get(route('public.invitations.show', [$event, $token]))->assertTooManyRequests();
+    }
+
     public function test_public_rsvp_rate_limit_handles_malformed_response_token(): void
     {
         config()->set('app.env', 'production');

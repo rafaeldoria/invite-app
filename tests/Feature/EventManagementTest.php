@@ -168,6 +168,18 @@ class EventManagementTest extends TestCase
             ->assertSessionHasErrors(['cover_image']);
     }
 
+    public function test_cover_image_validation_requires_an_allowed_image_extension(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('events.store'), [
+                ...$this->validPayload(),
+                'cover_image' => $this->tinyPng('cover.txt'),
+            ])
+            ->assertSessionHasErrors(['cover_image']);
+    }
+
     public function test_validation_rejects_required_text_that_is_blank_after_trimming(): void
     {
         $user = User::factory()->create();
