@@ -197,7 +197,9 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                             <h2 id="guest-list-title" className="text-lg font-semibold text-ink">{t('guests.index.listTitle')}</h2>
                             <p className="mt-1 text-sm text-muted">
                                 {isFullList
-                                    ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                    ? guests.total > 0
+                                        ? t('guests.fullList.pageSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
+                                        : t('guests.index.noGuestsSummary')
                                     : guests.total > 0
                                     ? t('guests.index.listSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
                                     : t('guests.index.noGuestsSummary')}
@@ -215,6 +217,7 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                     {isFullList ? (
                         <FullGuestListView
                             items={sortedFullGuestList}
+                            pagination={guests}
                             sort={fullListSort}
                             onSortChange={setFullListSort}
                             t={t}
@@ -391,11 +394,13 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
 
 function FullGuestListView({
     items,
+    pagination,
     sort,
     onSortChange,
     t,
 }: {
     items: FullGuestListItem[];
+    pagination: PaginatedGuests;
     sort: FullGuestListSort;
     onSortChange: (sort: FullGuestListSort) => void;
     t: ReturnType<typeof useLocale>['t'];
@@ -446,6 +451,31 @@ function FullGuestListView({
                     {t('dashboard.fullList.empty')}
                 </p>
             )}
+
+            {pagination.last_page > 1 ? (
+                <nav className="flex flex-col gap-3 border-t border-border pt-5 text-sm text-muted sm:flex-row sm:items-center sm:justify-between" aria-label={t('guests.index.paginationLabel')}>
+                    <p>{t('guests.fullList.pageSummary', { from: pagination.from ?? 0, to: pagination.to ?? 0, total: pagination.total })}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {pagination.prev_page_url ? (
+                            <ButtonLink href={pagination.prev_page_url} variant="secondary">{t('guests.index.previous')}</ButtonLink>
+                        ) : (
+                            <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
+                                {t('guests.index.previous')}
+                            </span>
+                        )}
+                        <span className="px-2 font-medium text-ink">
+                            {t('guests.index.pageStatus', { page: pagination.current_page, pages: pagination.last_page })}
+                        </span>
+                        {pagination.next_page_url ? (
+                            <ButtonLink href={pagination.next_page_url} variant="secondary">{t('guests.index.next')}</ButtonLink>
+                        ) : (
+                            <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
+                                {t('guests.index.next')}
+                            </span>
+                        )}
+                    </div>
+                </nav>
+            ) : null}
         </div>
     );
 }

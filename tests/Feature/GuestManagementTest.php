@@ -377,11 +377,22 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', null)
                 ->where('filters.view', 'full')
-                ->has('fullGuestList', 23)
+                ->where('guests.total', 23)
+                ->where('guests.current_page', 1)
+                ->where('guests.last_page', 2)
+                ->has('fullGuestList', 20)
                 ->where('fullGuestList.0.name', 'Alpha')
                 ->where('fullGuestList.0.is_named', true)
                 ->missing('fullGuestList.0.invitation_url')
                 ->missing('fullGuestList.0.invitation_token'));
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'page' => 2]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'full')
+                ->where('guests.current_page', 2)
+                ->has('fullGuestList', 3));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => 'maybe']))
@@ -449,13 +460,22 @@ class GuestManagementTest extends TestCase
     {
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
-        Guest::factory()->count(20)->for($event)->create();
+        $guests = Guest::factory()->count(20)->for($event)->create();
+        $guests->each(fn (Guest $guest): GuestCompanion => GuestCompanion::factory()->for($guest)->create());
 
         DB::flushQueryLog();
         DB::enableQueryLog();
 
         $this->actingAs($user)
             ->get(route('events.guests.index', $event))
+            ->assertOk();
+
+        $this->assertLessThanOrEqual(7, count(DB::getQueryLog()));
+
+        DB::flushQueryLog();
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
             ->assertOk();
 
         $this->assertLessThanOrEqual(7, count(DB::getQueryLog()));

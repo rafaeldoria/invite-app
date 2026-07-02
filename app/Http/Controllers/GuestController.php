@@ -41,14 +41,15 @@ class GuestController extends Controller
                 'event' => $event,
                 ...array_filter([
                     'status' => $status?->value,
+                    'view' => $view,
                     'page' => $guests->lastPage(),
                 ]),
             ]);
         }
 
-        $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
+        $fullGuestList = $view === 'full' ? $this->guests->fullList($guests->getCollection()) : [];
 
-        $fullGuestList = $view === 'full' ? $this->guests->fullList($event) : [];
+        $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
 
         return Inertia::render('Guests/Index', [
             'event' => [
