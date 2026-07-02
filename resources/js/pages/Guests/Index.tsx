@@ -197,7 +197,9 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                             <h2 id="guest-list-title" className="text-lg font-semibold text-ink">{t('guests.index.listTitle')}</h2>
                             <p className="mt-1 text-sm text-muted">
                                 {isFullList
-                                    ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                    ? fullGuestList.length > 0
+                                        ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                        : t('guests.index.noGuestsSummary')
                                     : guests.total > 0
                                     ? t('guests.index.listSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
                                     : t('guests.index.noGuestsSummary')}

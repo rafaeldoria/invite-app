@@ -347,9 +347,12 @@ class GuestManagementTest extends TestCase
         Guest::factory()->for($event)->confirmed()->create(['name' => 'Charlie']);
         Guest::factory()->for($event)->pending()->create(['name' => 'Bravo']);
         Guest::factory()->for($event)->declined()->create(['name' => 'Alpha']);
-        Guest::factory()->count(20)->for($event)->pending()->sequence(
-            ...array_map(fn (int $index): array => ['name' => sprintf('Guest %02d', $index)], range(1, 20)),
+        Guest::factory()->count(19)->for($event)->pending()->sequence(
+            ...array_map(fn (int $index): array => ['name' => sprintf('Guest %02d', $index)], range(1, 19)),
         )->create();
+        $laterPageGuest = Guest::factory()->for($event)->confirmed()->create(['name' => 'Guest 20']);
+
+        GuestCompanion::factory()->for($laterPageGuest)->child()->create(['name' => 'Aaron Child']);
 
         $this->actingAs($user)
             ->get(route('events.guests.index', $event))
@@ -367,8 +370,9 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', 'confirmed')
                 ->where('filters.view', null)
-                ->where('guests.total', 1)
+                ->where('guests.total', 2)
                 ->where('guests.data.0.name', 'Charlie')
+                ->where('guests.data.1.name', 'Guest 20')
                 ->has('fullGuestList', 0));
 
         $this->actingAs($user)
@@ -377,11 +381,26 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', null)
                 ->where('filters.view', 'full')
-                ->has('fullGuestList', 23)
+                ->where('guests.total', 23)
+                ->where('guests.current_page', 1)
+                ->where('guests.last_page', 2)
+                ->has('fullGuestList', 24)
                 ->where('fullGuestList.0.name', 'Alpha')
                 ->where('fullGuestList.0.is_named', true)
+                ->where('fullGuestList.23.name', 'Aaron Child')
+                ->where('fullGuestList.23.primary_guest', 'Guest 20')
+                ->where('fullGuestList.23.is_child', true)
+                ->where('fullGuestList.23.is_primary', false)
                 ->missing('fullGuestList.0.invitation_url')
                 ->missing('fullGuestList.0.invitation_token'));
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'page' => 2]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.view', 'full')
+                ->where('guests.current_page', 2)
+                ->has('fullGuestList', 24));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => 'maybe']))
@@ -449,13 +468,22 @@ class GuestManagementTest extends TestCase
     {
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
-        Guest::factory()->count(20)->for($event)->create();
+        $guests = Guest::factory()->count(20)->for($event)->create();
+        $guests->each(fn (Guest $guest): GuestCompanion => GuestCompanion::factory()->for($guest)->create());
 
         DB::flushQueryLog();
         DB::enableQueryLog();
 
         $this->actingAs($user)
             ->get(route('events.guests.index', $event))
+            ->assertOk();
+
+        $this->assertLessThanOrEqual(7, count(DB::getQueryLog()));
+
+        DB::flushQueryLog();
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
             ->assertOk();
 
         $this->assertLessThanOrEqual(7, count(DB::getQueryLog()));

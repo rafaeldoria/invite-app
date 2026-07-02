@@ -28,11 +28,13 @@ class GuestController extends Controller
         $status = $this->statusFilter($request);
         $status = $view === 'full' ? null : $status;
 
-        $guests = $event->guests()
+        $guestQuery = $event->guests()
             ->with('companions')
             ->when($status !== null, fn ($query) => $query->where('status', $status->value))
             ->orderBy('name')
-            ->orderBy('id')
+            ->orderBy('id');
+
+        $guests = (clone $guestQuery)
             ->paginate(20)
             ->withQueryString();
 
@@ -41,14 +43,15 @@ class GuestController extends Controller
                 'event' => $event,
                 ...array_filter([
                     'status' => $status?->value,
+                    'view' => $view,
                     'page' => $guests->lastPage(),
                 ]),
             ]);
         }
 
-        $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
+        $fullGuestList = $view === 'full' ? $this->guests->fullList($guestQuery->get()) : [];
 
-        $fullGuestList = $view === 'full' ? $this->guests->fullList($event) : [];
+        $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
 
         return Inertia::render('Guests/Index', [
             'event' => [

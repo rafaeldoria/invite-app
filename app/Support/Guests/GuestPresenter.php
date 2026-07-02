@@ -38,15 +38,12 @@ final class GuestPresenter
     }
 
     /**
+     * @param  Collection<int, Guest>  $guests
      * @return Collection<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>
      */
-    public function fullList(Event $event): Collection
+    public function fullList(Collection $guests): Collection
     {
-        return $event->guests()
-            ->with('companions')
-            ->orderBy('name')
-            ->orderBy('id')
-            ->get()
+        return $guests
             ->flatMap(fn (Guest $guest): array => [
                 [
                     'name' => $guest->name,

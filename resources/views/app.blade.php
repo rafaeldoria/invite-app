@@ -1,3 +1,5 @@
+@use('Illuminate\Support\Facades\Vite')
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
     <head>
@@ -23,7 +25,7 @@
             <meta property="og:type" content="website">
         @endif
 
-        <script>
+        <script nonce="{{ Vite::cspNonce() }}">
             (() => {
                 let stored = null;
 

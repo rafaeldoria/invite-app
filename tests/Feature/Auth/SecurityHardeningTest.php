@@ -26,13 +26,16 @@ class SecurityHardeningTest extends TestCase
     {
         config()->set('app.env', 'production');
 
-        $policy = (string) $this->get(route('home'))->headers->get('Content-Security-Policy');
+        $response = $this->get(route('home'));
+        $policy = (string) $response->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString("script-src 'self'", $policy);
+        $this->assertMatchesRegularExpression("/script-src[^;]*'nonce-[^']+'/i", $policy);
         $this->assertStringNotContainsString('localhost', $policy);
         $this->assertStringNotContainsString('127.0.0.1', $policy);
         $this->assertStringNotContainsString('0.0.0.0', $policy);
         $this->assertStringNotContainsString("'unsafe-inline'", $policy);
+        $this->assertMatchesRegularExpression('/<script nonce="[^"]+">/', $response->getContent());
     }
 
     public function test_session_cookie_can_be_marked_secure_for_production(): void

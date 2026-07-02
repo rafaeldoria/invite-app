@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 class AddSecurityHeaders
@@ -13,6 +14,8 @@ class AddSecurityHeaders
      */
     public function handle(Request $request, Closure $next): Response
     {
+        Vite::useCspNonce();
+
         $response = $next($request);
 
         $response->headers->set('X-Frame-Options', 'DENY');
@@ -35,7 +38,7 @@ class AddSecurityHeaders
             'frame-ancestors' => "frame-ancestors 'none'",
             'img-src' => "img-src 'self' data: blob: https:",
             'object-src' => "object-src 'none'",
-            'script-src' => "script-src 'self'",
+            'script-src' => "script-src 'self' 'nonce-".Vite::cspNonce()."'",
             'style-src' => "style-src 'self'",
         ];
 

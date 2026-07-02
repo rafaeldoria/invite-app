@@ -24,7 +24,7 @@ The current priority is to validate the product quickly with a lean MVP. Product
 
 ### Backend
 
-- PHP, currently constrained to `^8.3` in `composer.json`. PHP 8.4+ is the project target, but it is not yet enforced by Composer.
+- PHP `^8.4.1`, enforced by Composer and CI.
 - Laravel 13.
 - Inertia.js Laravel adapter 3.
 - PHPUnit 12 for automated tests.
