@@ -289,7 +289,7 @@ export const ptBR = {
     'guests.delete.cancel': 'Manter convidado',
     'guests.delete.confirm': 'Excluir convidado',
     'guests.delete.deleting': 'Excluindo convidado',
-    'guests.fullList.pageSummary': 'Exibindo convidados principais {from}-{to} de {total}',
+    'guests.fullList.summary': 'Exibindo todos os {total} convidados e acompanhantes',
     'dashboard.title': 'Dashboard',
     'dashboard.description': 'Revise o status atual das respostas deste evento. Os números atualizam na próxima visita após mudanças em convidados ou respostas.',
     'dashboard.back': 'Voltar para o evento',

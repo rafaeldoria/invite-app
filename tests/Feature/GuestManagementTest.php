@@ -370,8 +370,9 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', 'confirmed')
                 ->where('filters.view', null)
-                ->where('guests.total', 1)
+                ->where('guests.total', 2)
                 ->where('guests.data.0.name', 'Charlie')
+                ->where('guests.data.1.name', 'Guest 20')
                 ->has('fullGuestList', 0));
 
         $this->actingAs($user)

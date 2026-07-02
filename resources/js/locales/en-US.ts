@@ -287,7 +287,7 @@ export const enUS = {
     'guests.delete.cancel': 'Keep guest',
     'guests.delete.confirm': 'Delete guest',
     'guests.delete.deleting': 'Deleting guest',
-    'guests.fullList.pageSummary': 'Showing primary guests {from}-{to} of {total}',
+    'guests.fullList.summary': 'Showing all {total} guests and companions',
     'dashboard.title': 'Dashboard',
     'dashboard.description': 'Review the current response status for this event. Counts refresh on the next visit after guest or response changes.',
     'dashboard.back': 'Back to event',
