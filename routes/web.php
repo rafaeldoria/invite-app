@@ -32,19 +32,23 @@ Route::get('/e/{event:public_id}', PublicEventController::class)
     ->name('public.events.show');
 
 Route::get('/e/{event:public_id}/rsvp', [PublicRsvpController::class, 'create'])
+    ->middleware('throttle:public-rsvp')
     ->name('public.rsvp.create');
 Route::post('/e/{event:public_id}/rsvp', [PublicRsvpController::class, 'store'])
     ->middleware('throttle:public-rsvp')
     ->name('public.rsvp.store');
 Route::get('/e/{event:public_id}/rsvp/{token}', [PublicRsvpManagementController::class, 'show'])
+    ->middleware('throttle:public-rsvp')
     ->name('public.rsvp.show');
 Route::patch('/e/{event:public_id}/rsvp/{token}', [PublicRsvpManagementController::class, 'update'])
     ->middleware('throttle:public-rsvp')
     ->name('public.rsvp.update');
 
 Route::get('/e/{event:public_id}/invitation/{token}', PublicInvitationController::class)
+    ->middleware('throttle:public-rsvp')
     ->name('public.invitations.show');
 Route::get('/e/{event:public_id}/invitation/{token}/rsvp', [PublicInvitationRsvpController::class, 'edit'])
+    ->middleware('throttle:public-rsvp')
     ->name('public.invitations.rsvp.edit');
 Route::patch('/e/{event:public_id}/invitation/{token}/rsvp', [PublicInvitationRsvpController::class, 'update'])
     ->middleware('throttle:public-rsvp')
