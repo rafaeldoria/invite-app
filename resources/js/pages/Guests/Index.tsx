@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert } from '../../components/feedback/Alert';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Field } from '../../components/forms/Field';
@@ -11,10 +11,12 @@ import { Dialog } from '../../components/ui/Dialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { AuthenticatedLayout } from '../../layouts/AuthenticatedLayout';
 import { useLocale } from '../../hooks/use-locale';
-import type { GuestFormData, GuestListItem, GuestStatus, GuestStatusOption, PaginatedGuests } from '../../types/guests';
+import type { FullGuestListItem, GuestFormData, GuestListItem, GuestStatus, GuestStatusOption, PaginatedGuests } from '../../types/guests';
 import type { TranslationKey } from '../../locales';
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
+type FullGuestListSort = 'guest' | 'alphabetical' | 'child';
+type GuestListView = 'full';
 
 type Props = {
     event: {
@@ -25,8 +27,10 @@ type Props = {
         };
     };
     guests: PaginatedGuests;
+    fullGuestList: FullGuestListItem[];
     filters: {
         status: GuestStatus | null;
+        view: GuestListView | null;
     };
     statusOptions: GuestStatusOption[];
     links: {
@@ -41,11 +45,15 @@ const defaultGuestForm: GuestFormData = {
     child_companions: 0,
 };
 
-export default function Index({ event, guests, filters, statusOptions, links }: Props) {
+const fullListSortOptions: FullGuestListSort[] = ['guest', 'alphabetical', 'child'];
+
+export default function Index({ event, guests, fullGuestList, filters, statusOptions, links }: Props) {
     const { t, tp } = useLocale();
     const [createOpen, setCreateOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<GuestListItem | null>(null);
     const [deletingGuest, setDeletingGuest] = useState<GuestListItem | null>(null);
+    const [companionGuest, setCompanionGuest] = useState<GuestListItem | null>(null);
+    const [fullListSort, setFullListSort] = useState<FullGuestListSort>('guest');
     const [feedback, setFeedback] = useState<Feedback>(null);
 
     const createForm = useForm<GuestFormData>(defaultGuestForm);
@@ -62,8 +70,13 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
     ].filter((error): error is { fieldId: string; message: string } => error !== null);
 
     const selectedFilter = filters.status ?? 'all';
+    const isFullList = filters.view === 'full';
     const hasGuests = guests.data.length > 0;
-    const isFiltered = filters.status !== null;
+    const isFiltered = filters.status !== null && !isFullList;
+    const sortedFullGuestList = useMemo(
+        () => sortFullGuestList(fullGuestList, fullListSort),
+        [fullGuestList, fullListSort],
+    );
 
     function openCreateDialog() {
         createForm.clearErrors();
@@ -130,8 +143,13 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
     }
 
     async function copyInvitation(guest: GuestListItem) {
+        if (!navigator.clipboard) {
+            setFeedback({ tone: 'error', message: t('guests.feedback.copyError') });
+            return;
+        }
+
         try {
-            await copyText(guest.invitation_url);
+            await navigator.clipboard.writeText(guest.invitation_url);
             setFeedback({ tone: 'success', message: t('guests.feedback.copySuccess', { name: guest.name }) });
         } catch {
             setFeedback({ tone: 'error', message: t('guests.feedback.copyError') });
@@ -140,6 +158,10 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
 
     function filterHref(status: GuestStatus | 'all') {
         return status === 'all' ? event.links.guests : `${event.links.guests}?status=${status}`;
+    }
+
+    function fullListHref() {
+        return `${event.links.guests}?view=full`;
     }
 
     return (
@@ -174,20 +196,30 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                         <div>
                             <h2 id="guest-list-title" className="text-lg font-semibold text-ink">{t('guests.index.listTitle')}</h2>
                             <p className="mt-1 text-sm text-muted">
-                                {guests.total > 0
+                                {isFullList
+                                    ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                    : guests.total > 0
                                     ? t('guests.index.listSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
                                     : t('guests.index.noGuestsSummary')}
                             </p>
                         </div>
                         <nav className="flex flex-wrap gap-2" aria-label={t('guests.index.filterLabel')}>
-                            <FilterLink href={filterHref('all')} active={selectedFilter === 'all'} label={t('guests.filter.all')} />
+                            <FilterLink href={filterHref('all')} active={!isFullList && selectedFilter === 'all'} label={t('guests.filter.all')} />
                             {statusOptions.map((option) => (
-                                <FilterLink key={option.value} href={filterHref(option.value)} active={selectedFilter === option.value} label={t(option.label_key as TranslationKey)} />
+                                <FilterLink key={option.value} href={filterHref(option.value)} active={!isFullList && selectedFilter === option.value} label={t(option.label_key as TranslationKey)} />
                             ))}
+                            <FilterLink href={fullListHref()} active={isFullList} label={t('dashboard.fullList.action')} />
                         </nav>
                     </div>
 
-                    {!hasGuests ? (
+                    {isFullList ? (
+                        <FullGuestListView
+                            items={sortedFullGuestList}
+                            sort={fullListSort}
+                            onSortChange={setFullListSort}
+                            t={t}
+                        />
+                    ) : !hasGuests ? (
                         <Card className="mt-6">
                             <EmptyState
                                 title={isFiltered ? t('guests.index.filterEmptyTitle') : t('guests.index.emptyTitle')}
@@ -208,9 +240,12 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                                                 </div>
                                                 <p className="text-sm leading-6 text-muted">{companionSummary(guest, t, tp)}</p>
                                             </div>
-                                            <div className="grid gap-2 sm:grid-cols-3 lg:w-auto lg:min-w-[28rem]">
-                                                <Button type="button" variant="secondary" onClick={() => copyInvitation(guest)} aria-label={t('guests.actions.copyFor', { name: guest.name })}>
-                                                    {t('guests.actions.copy')}
+                                            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4 xl:w-auto xl:min-w-[36rem]">
+                                                <Button type="button" variant="secondary" onClick={() => void copyInvitation(guest)} aria-label={t('guests.actions.copyInvitationFor', { name: guest.name })}>
+                                                    {t('guests.actions.copyInvitation')}
+                                                </Button>
+                                                <Button type="button" variant="secondary" onClick={() => setCompanionGuest(guest)} aria-label={t('guests.actions.companionsFor', { name: guest.name })}>
+                                                    {t('guests.actions.companions')}
                                                 </Button>
                                                 <Button type="button" variant="secondary" onClick={() => openEditDialog(guest)} aria-label={t('guests.actions.editFor', { name: guest.name })}>
                                                     {t('guests.actions.edit')}
@@ -322,7 +357,96 @@ export default function Index({ event, guests, filters, statusOptions, links }: 
                 closeOnConfirm={false}
                 confirmDisabled={deleteForm.processing}
             />
+
+            <Dialog
+                open={companionGuest !== null}
+                onClose={() => setCompanionGuest(null)}
+                title={companionGuest ? t('guests.companions.modalTitle', { name: companionGuest.name }) : t('guests.companions.title')}
+                description={t('guests.companions.modalDescription')}
+                cancelLabel={t('guests.companions.close')}
+            >
+                <div className="mt-5">
+                    {companionGuest && companionGuest.companions.length > 0 ? (
+                        <ul className="divide-y divide-border rounded-lg border border-border" aria-label={t('guests.companions.listLabel')}>
+                            {companionGuest.companions.map((companion, index) => (
+                                <li key={`${companion.name}-${index}`} className="flex items-center justify-between gap-4 px-4 py-3">
+                                    <span className="min-w-0 break-words text-sm font-medium text-ink">{companion.name}</span>
+                                    <span className="shrink-0 rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
+                                        {companion.is_child ? t('guests.companions.child') : t('guests.companions.adult')}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
+                            {t('guests.companions.none')}
+                        </p>
+                    )}
+                </div>
+            </Dialog>
+
         </AuthenticatedLayout>
+    );
+}
+
+function FullGuestListView({
+    items,
+    sort,
+    onSortChange,
+    t,
+}: {
+    items: FullGuestListItem[];
+    sort: FullGuestListSort;
+    onSortChange: (sort: FullGuestListSort) => void;
+    t: ReturnType<typeof useLocale>['t'];
+}) {
+    return (
+        <div className="mt-6 space-y-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 className="text-base font-semibold text-ink">{t('dashboard.fullList.title')}</h3>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">{t('dashboard.fullList.description')}</p>
+                </div>
+                <div className="sm:text-right">
+                    <p className="mb-2 text-sm font-semibold text-ink">{t('dashboard.fullList.sortLabel')}</p>
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                        {fullListSortOptions.map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => onSortChange(option)}
+                                className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${sort === option ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
+                                aria-pressed={sort === option}
+                            >
+                                {t(`dashboard.fullList.sort.${option}` as TranslationKey)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {items.length > 0 ? (
+                <ul className="grid gap-3" aria-label={t('dashboard.fullList.listLabel')}>
+                    {items.map((item, index) => (
+                        <li key={`${item.primary_guest}-${item.name}-${index}`} className="grid gap-3 rounded-xl bg-surface p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+                            <div className="min-w-0">
+                                <p className="break-words text-base font-semibold text-ink">{fullListDisplayName(item, t)}</p>
+                                {!item.is_primary ? (
+                                    <p className="mt-1 break-words text-sm text-muted">{t('dashboard.fullList.primaryGuest', { name: item.primary_guest })}</p>
+                                ) : null}
+                            </div>
+                            <span className="w-fit rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-muted">
+                                {item.is_child ? t('dashboard.fullList.child') : t('dashboard.fullList.adult')}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="rounded-lg border border-border bg-surface-muted px-4 py-3 text-sm leading-6 text-muted">
+                    {t('dashboard.fullList.empty')}
+                </p>
+            )}
+        </div>
     );
 }
 
@@ -355,30 +479,36 @@ function companionSummary(guest: GuestListItem, t: ReturnType<typeof useLocale>[
     });
 }
 
-async function copyText(value: string): Promise<void> {
-    if (navigator.clipboard?.writeText) {
-        try {
-            await navigator.clipboard.writeText(value);
-            return;
-        } catch {
-            // Continue to the textarea fallback for browsers that expose Clipboard but reject it.
+function sortFullGuestList(items: FullGuestListItem[], sort: FullGuestListSort): FullGuestListItem[] {
+    const sorted = [...items];
+
+    return sorted.sort((a, b) => {
+        if (sort === 'child' && a.is_child !== b.is_child) {
+            return a.is_child ? -1 : 1;
         }
+
+        if (sort === 'guest') {
+            const guestCompare = compareText(a.primary_guest, b.primary_guest);
+            if (guestCompare !== 0) return guestCompare;
+            if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+        }
+
+        return compareText(sortableFullListName(a), sortableFullListName(b));
+    });
+}
+
+function fullListDisplayName(item: FullGuestListItem, t: ReturnType<typeof useLocale>['t']): string {
+    if (item.name) {
+        return item.name;
     }
 
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', 'true');
-    textarea.style.position = 'fixed';
-    textarea.style.inset = '0 auto auto 0';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
+    return item.is_child ? t('dashboard.fullList.unnamedChild') : t('dashboard.fullList.unnamedAdult');
+}
 
-    try {
-        if (!document.execCommand('copy')) {
-            throw new Error('Copy command failed.');
-        }
-    } finally {
-        document.body.removeChild(textarea);
-    }
+function sortableFullListName(item: FullGuestListItem): string {
+    return item.name ?? `${item.primary_guest} ${item.is_child ? 'child' : 'adult'}`;
+}
+
+function compareText(a: string, b: string): number {
+    return a.localeCompare(b, undefined, { sensitivity: 'base' });
 }

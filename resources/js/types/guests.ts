@@ -5,13 +5,27 @@ export type GuestLinks = {
     destroy: string;
 };
 
+export type GuestCompanion = {
+    name: string;
+    is_child: boolean;
+};
+
+export type FullGuestListItem = {
+    name: string | null;
+    primary_guest: string;
+    is_child: boolean;
+    is_primary: boolean;
+    is_named: boolean;
+};
+
 export type GuestListItem = {
     name: string;
+    invitation_url: string;
     status: GuestStatus;
     adult_companions: number;
     child_companions: number;
     companion_count: number;
-    invitation_url: string;
+    companions: GuestCompanion[];
     links: GuestLinks;
 };
 

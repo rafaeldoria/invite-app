@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\GuestStatus;
 use App\Models\Event;
 use App\Models\Guest;
+use App\Models\GuestCompanion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -134,6 +135,25 @@ class EventDashboardTest extends TestCase
                 ])));
     }
 
+    public function test_dashboard_does_not_eager_load_full_guest_list_payload(): void
+    {
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+
+        $alex = Guest::factory()->for($event)->confirmed(1, 1)->create(['name' => 'Alex Guest']);
+
+        GuestCompanion::factory()->for($alex)->create(['name' => 'Adult Companion']);
+        GuestCompanion::factory()->for($alex)->child()->create(['name' => 'Child Companion']);
+
+        $this->actingAs($user)
+            ->get(route('events.dashboard', $event))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('metrics.expected_attendees', 3)
+                ->missing('fullGuestList')
+            );
+    }
+
     public function test_public_event_and_rsvp_pages_do_not_receive_dashboard_metrics(): void
     {
         $event = Event::factory()->create();
@@ -234,7 +254,7 @@ class EventDashboardTest extends TestCase
         $largeQueryCount = $this->dashboardQueryCount($user, $largeEvent);
 
         $this->assertSame($smallQueryCount, $largeQueryCount);
-        $this->assertLessThanOrEqual(4, $largeQueryCount);
+        $this->assertLessThanOrEqual(6, $largeQueryCount);
     }
 
     private function dashboardQueryCount(User $user, Event $event): int

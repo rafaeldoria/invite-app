@@ -79,9 +79,15 @@ export default function Dashboard({ event, metrics, links }: Props) {
                             </p>
                         </div>
                         {metrics.expected_attendees !== undefined ? (
-                            <div className="rounded-lg bg-surface-muted px-4 py-3 text-sm">
-                                <span className="font-semibold text-ink">{formatter.format(metrics.expected_attendees)}</span>
-                                <span className="ml-2 text-muted">{t('dashboard.expectedAttendees')}</span>
+                            <div className="flex flex-col gap-3 sm:items-end">
+                                <div className="rounded-lg bg-surface-muted px-4 py-3 text-sm">
+                                    <span className="font-semibold text-ink">{formatter.format(metrics.expected_attendees)}</span>
+                                    {' '}
+                                    <span className="ml-2 text-muted">{t('dashboard.expectedAttendees')}</span>
+                                </div>
+                                <ButtonLink href={`${event.links.guests}?view=full`} variant="secondary">
+                                    {t('dashboard.fullList.action')}
+                                </ButtonLink>
                             </div>
                         ) : null}
                     </div>
