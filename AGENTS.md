@@ -24,7 +24,7 @@ The current priority is to validate the product quickly with a lean MVP. Product
 
 ### Backend
 
-- PHP `^8.4.1`, enforced by Composer and used by Docker and CI.
+- PHP `^8.4.1`, enforced by Composer and CI.
 - Laravel 13.
 - Inertia.js Laravel adapter 3.
 - PHPUnit 12 for automated tests.
