@@ -33,7 +33,7 @@ abstract class EventFormRequest extends FormRequest
             'timezone' => ['required', 'timezone'],
             'location' => ['required', 'string', 'min:1', 'max:255'],
             'theme' => ['nullable', 'string', 'max:80'],
-            'cover_image' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120'],
+            'cover_image' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:5120'],
             ...$this->additionalRules(),
         ];
     }

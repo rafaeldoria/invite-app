@@ -53,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-rsvp', function (Request $request) use ($tooManyAttempts) {
             $event = $request->route('event');
             $eventKey = $event instanceof Event ? $event->public_id : (string) ($event ?? 'unknown-event');
-            $capability = $request->route('token') ?? $request->input('response_token');
+            $capability = $request->route('token') ?? ($request->isMethod('GET') ? null : $request->input('response_token'));
             $capabilityKey = is_scalar($capability) ? (string) $capability : 'new-response';
 
             return [
