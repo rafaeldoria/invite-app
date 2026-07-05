@@ -1,96 +1,275 @@
 import { Head, usePage } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
-import { Alert } from '../components/feedback/Alert';
-import { EmptyState } from '../components/feedback/EmptyState';
-import { FormErrorSummary } from '../components/forms/FormErrorSummary';
-import { Field } from '../components/forms/Field';
-import { Checkbox, Textarea, TextInput } from '../components/forms/controls';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { Dialog } from '../components/ui/Dialog';
-import { LoadingIndicator, Skeleton } from '../components/ui/Loading';
+import { ButtonLink } from '../components/ui/Button';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { useLocale } from '../hooks/use-locale';
 import { AuthenticatedLayout } from '../layouts/AuthenticatedLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
 import type { SharedPageProps } from '../types/shared';
 
+type Step = {
+    number: string;
+    title: string;
+    description: string;
+};
+
+type Feature = {
+    title: string;
+    description: string;
+};
+
+type Testimonial = {
+    quote: string;
+    name: string;
+    context: string;
+};
+
 export default function Welcome() {
     const { auth } = usePage<SharedPageProps>().props;
     const { t } = useLocale();
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [showErrors, setShowErrors] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const Layout = auth.user ? AuthenticatedLayout : PublicLayout;
-    const errors = showErrors ? [{ fieldId: 'event-name', message: t('welcome.nameError') }] : [];
+    const primaryHref = auth.user ? '/events' : '/login';
+    const primaryLabel = auth.user ? t('welcome.heroPrimaryAuthenticated') : t('welcome.heroPrimary');
 
-    function submitExample(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        const hasName = new FormData(event.currentTarget).get('name')?.toString().trim();
-        setShowErrors(!hasName);
-        setSaved(false);
+    const steps: Step[] = [
+        {
+            number: '1',
+            title: t('welcome.stepCreateTitle'),
+            description: t('welcome.stepCreateDescription'),
+        },
+        {
+            number: '2',
+            title: t('welcome.stepInviteTitle'),
+            description: t('welcome.stepInviteDescription'),
+        },
+        {
+            number: '3',
+            title: t('welcome.stepTrackTitle'),
+            description: t('welcome.stepTrackDescription'),
+        },
+    ];
 
-        if (!hasName) return;
+    const features: Feature[] = [
+        {
+            title: t('welcome.featureEventTitle'),
+            description: t('welcome.featureEventDescription'),
+        },
+        {
+            title: t('welcome.featureGuestsTitle'),
+            description: t('welcome.featureGuestsDescription'),
+        },
+        {
+            title: t('welcome.featureRsvpTitle'),
+            description: t('welcome.featureRsvpDescription'),
+        },
+        {
+            title: t('welcome.featureDashboardTitle'),
+            description: t('welcome.featureDashboardDescription'),
+        },
+    ];
 
-        setSubmitting(true);
-        window.setTimeout(() => {
-            setSubmitting(false);
-            setSaved(true);
-        }, 500);
-    }
+    const testimonials: Testimonial[] = [
+        {
+            quote: t('welcome.testimonialOneQuote'),
+            name: t('welcome.testimonialOneName'),
+            context: t('welcome.testimonialOneContext'),
+        },
+        {
+            quote: t('welcome.testimonialTwoQuote'),
+            name: t('welcome.testimonialTwoName'),
+            context: t('welcome.testimonialTwoContext'),
+        },
+        {
+            quote: t('welcome.testimonialThreeQuote'),
+            name: t('welcome.testimonialThreeName'),
+            context: t('welcome.testimonialThreeContext'),
+        },
+    ];
 
-    return (
-        <Layout>
-            <Head title={t('welcome.foundation')} />
-            <main id="main-content" className="mx-auto max-w-6xl px-5 py-10 sm:py-14 lg:py-18">
-                <header className="max-w-3xl">
-                    <p className="text-sm font-semibold text-accent-strong">{t('welcome.foundation')}</p>
-                    <h1 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-balance text-ink sm:text-4xl lg:text-5xl">{t('welcome.title')}</h1>
-                    <p className="mt-5 max-w-[68ch] text-base leading-7 text-pretty text-muted sm:text-lg">{t('welcome.description')}</p>
-                </header>
+    const headerActions = (
+        <nav aria-label={t('welcome.headerActions')} className="flex items-center gap-2">
+            <a href="#contact" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-muted hover:bg-surface-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                {t('welcome.contact')}
+            </a>
+            <ButtonLink href="/login" variant="secondary" className="px-3 sm:px-4">
+                {t('welcome.signIn')}
+            </ButtonLink>
+        </nav>
+    );
 
-                <div className="mt-10 flex flex-col gap-6 lg:flex-row lg:items-start">
-                    <Card className="min-w-0 flex-1">
-                        <h2 className="text-xl font-bold tracking-[-0.02em]">{t('welcome.formTitle')}</h2>
-                        <p className="mt-2 text-sm leading-6 text-muted">{t('welcome.formDescription')}</p>
-                        <form className="mt-6 space-y-5" onSubmit={submitExample} noValidate>
-                            <FormErrorSummary title={t('welcome.alertTitle')} errors={errors} />
-                            {saved ? <Alert title={t('welcome.formSuccess')} tone="success">{t('welcome.formDescription')}</Alert> : null}
-                            <Field id="event-name" label={t('welcome.name')} required help={t('welcome.nameHelp')} error={showErrors ? t('welcome.nameError') : undefined}>
-                                <TextInput id="event-name" name="name" invalid={showErrors} autoComplete="off" required />
-                            </Field>
-                            <Field id="event-description" label={t('welcome.descriptionLabel')}>
-                                <Textarea id="event-description" name="description" />
-                            </Field>
-                            <Field id="event-address" label={t('welcome.address')}>
-                                <TextInput id="event-address" name="address" placeholder={t('welcome.addressPlaceholder')} />
-                            </Field>
-                            <Checkbox name="reminder" label={t('welcome.reminder')} />
-                            <Button type="submit" loading={submitting} loadingLabel={t('welcome.saving')} className="mt-2 !rounded-full !px-6">{t('welcome.save')}</Button>
-                        </form>
-                    </Card>
+    const page = (
+        <>
+            <Head title={t('welcome.metaTitle')}>
+                <meta name="description" content={t('welcome.metaDescription')} />
+            </Head>
 
-                    <div className="min-w-0 space-y-6 lg:w-[22rem]">
-                        <Card>
-                            <h2 className="text-xl font-bold tracking-[-0.02em]">{t('welcome.feedbackTitle')}</h2>
-                            <p className="mt-2 text-sm leading-6 text-muted">{t('welcome.feedbackDescription')}</p>
-                            <div className="mt-5 flex flex-wrap gap-2"><StatusBadge status="confirmed">{t('welcome.confirmed')}</StatusBadge><StatusBadge status="pending">{t('welcome.pending')}</StatusBadge><StatusBadge status="declined">{t('welcome.declined')}</StatusBadge></div>
-                            <div className="mt-5"><Alert title={t('welcome.alertTitle')} tone="info">{t('welcome.alertBody')}</Alert></div>
-                        </Card>
-                        <Card>
-                            <EmptyState title={t('welcome.emptyTitle')} description={t('welcome.emptyBody')} action={<Button type="button" variant="secondary">{t('welcome.addGuest')}</Button>} />
-                        </Card>
+            <main id="main-content" className="mx-auto w-full max-w-6xl px-5 py-8 sm:py-12 lg:py-14">
+                <section className="grid gap-8 py-6 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center lg:gap-12" aria-labelledby="home-hero-title">
+                    <div className="max-w-3xl">
+                        <p className="text-sm font-semibold text-accent-strong">{t('welcome.heroKicker')}</p>
+                        <h1 id="home-hero-title" className="mt-4 max-w-3xl text-4xl font-bold tracking-[-0.03em] text-balance text-ink sm:text-5xl">
+                            {t('welcome.heroTitle')}
+                        </h1>
+                        <p className="mt-5 max-w-[64ch] text-base leading-7 text-pretty text-muted sm:text-lg">
+                            {t('welcome.heroDescription')}
+                        </p>
+                        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                            <ButtonLink href={primaryHref} className="w-full sm:w-auto">
+                                {primaryLabel}
+                            </ButtonLink>
+                            <a href="#contact" className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:w-auto">
+                                {t('welcome.contact')}
+                            </a>
+                        </div>
                     </div>
-                </div>
 
-                <section className="mt-6 rounded-xl bg-surface p-5 shadow-sm sm:p-6" aria-labelledby="loading-title">
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><LoadingIndicator label={t('welcome.loading')} /><Button type="button" variant="danger" onClick={() => setDialogOpen(true)}>{t('welcome.dialogOpen')}</Button></div>
-                    <h2 id="loading-title" className="sr-only">{t('welcome.loading')}</h2>
-                    <div className="mt-5 space-y-3"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-4 w-full" /></div>
+                    <ProductPreview />
+                </section>
+
+                <section className="mt-12 border-y border-border py-10 sm:mt-16 sm:py-12" aria-labelledby="home-steps-title">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 id="home-steps-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+                                {t('welcome.stepsTitle')}
+                            </h2>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                                {t('welcome.stepsDescription')}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="mt-7 grid gap-4 md:grid-cols-3">
+                        {steps.map((step) => (
+                            <article key={step.number} className="rounded-xl bg-surface p-5 shadow-sm">
+                                <span className="inline-flex size-9 items-center justify-center rounded-full bg-accent-soft text-sm font-bold text-accent-strong">
+                                    {step.number}
+                                </span>
+                                <h3 className="mt-4 text-lg font-semibold text-ink">{step.title}</h3>
+                                <p className="mt-2 text-sm leading-6 text-muted">{step.description}</p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="mt-10 rounded-xl bg-surface-muted px-5 py-8 sm:px-6 sm:py-10" aria-labelledby="home-features-title">
+                    <h2 id="home-features-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+                        {t('welcome.featuresTitle')}
+                    </h2>
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                        {features.map((feature) => (
+                            <article key={feature.title} className="rounded-lg bg-surface p-5">
+                                <h3 className="text-base font-semibold text-ink">{feature.title}</h3>
+                                <p className="mt-2 text-sm leading-6 text-muted">{feature.description}</p>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="mt-12 sm:mt-16" aria-labelledby="home-testimonials-title">
+                    <div className="max-w-2xl">
+                        <h2 id="home-testimonials-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+                            {t('welcome.testimonialsTitle')}
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-muted">{t('welcome.testimonialsDescription')}</p>
+                    </div>
+                    <div className="mt-7 grid gap-4 lg:grid-cols-3">
+                        {testimonials.map((testimonial) => (
+                            <figure key={testimonial.name} className="rounded-xl bg-surface p-5 shadow-sm">
+                                <blockquote className="text-sm leading-6 text-ink">
+                                    <p>{testimonial.quote}</p>
+                                </blockquote>
+                                <figcaption className="mt-5 border-t border-border pt-4">
+                                    <p className="font-semibold text-ink">{testimonial.name}</p>
+                                    <p className="mt-1 text-sm text-muted">{testimonial.context}</p>
+                                </figcaption>
+                            </figure>
+                        ))}
+                    </div>
+                </section>
+
+                <section id="contact" className="mt-12 scroll-mt-24 rounded-xl bg-accent-soft p-6 sm:mt-16 sm:p-8" aria-labelledby="home-contact-title">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 id="home-contact-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+                                {t('welcome.contactTitle')}
+                            </h2>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-accent-strong">
+                                {t('welcome.contactDescription')}
+                            </p>
+                        </div>
+                        <span className="inline-flex min-h-11 items-center rounded-lg bg-surface px-4 py-2 text-sm font-semibold text-muted">
+                            {t('welcome.contactStatus')}
+                        </span>
+                    </div>
                 </section>
             </main>
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title={t('welcome.dialogTitle')} description={t('welcome.dialogDescription')} cancelLabel={t('welcome.cancel')} confirmLabel={t('welcome.remove')} onConfirm={() => undefined} destructive />
-        </Layout>
+
+            <footer className="border-t border-border px-5 py-6">
+                <div className="mx-auto flex max-w-6xl flex-col gap-2 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+                    <p className="font-semibold text-ink">{t('welcome.footerBrand')}</p>
+                    <p>{t('welcome.footerDescription')}</p>
+                </div>
+            </footer>
+        </>
+    );
+
+    if (auth.user) {
+        return <AuthenticatedLayout>{page}</AuthenticatedLayout>;
+    }
+
+    return <PublicLayout headerActions={headerActions}>{page}</PublicLayout>;
+}
+
+function ProductPreview() {
+    const { t } = useLocale();
+
+    return (
+        <aside className="rounded-xl bg-surface p-4 shadow-sm sm:p-5" aria-label={t('welcome.previewLabel')}>
+            <div className="rounded-lg bg-canvas p-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <p className="text-xs font-semibold text-accent-strong">{t('welcome.previewEventType')}</p>
+                        <h2 className="mt-1 text-xl font-bold tracking-[-0.02em] text-ink">{t('welcome.previewEventName')}</h2>
+                    </div>
+                    <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
+                        {t('welcome.previewShared')}
+                    </span>
+                </div>
+
+                <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="rounded-lg bg-surface p-3">
+                        <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
+                        <dd className="mt-1 text-muted">{t('welcome.previewDate')}</dd>
+                    </div>
+                    <div className="rounded-lg bg-surface p-3">
+                        <dt className="font-semibold text-ink">{t('events.fields.location')}</dt>
+                        <dd className="mt-1 text-muted">{t('welcome.previewLocation')}</dd>
+                    </div>
+                </dl>
+
+                <div className="mt-5" aria-label={t('welcome.previewStatuses')}>
+                    <div className="flex flex-wrap gap-2">
+                        <StatusBadge status="confirmed">{t('welcome.previewConfirmed')}</StatusBadge>
+                        <StatusBadge status="pending">{t('welcome.previewPending')}</StatusBadge>
+                        <StatusBadge status="declined">{t('welcome.previewDeclined')}</StatusBadge>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-lg bg-surface-muted p-3">
+                <p className="text-sm font-semibold text-ink">{t('welcome.previewDashboardTitle')}</p>
+                <div className="mt-3 grid gap-2">
+                    <PreviewMetric label={t('welcome.previewMetricTotal')} value="42" />
+                    <PreviewMetric label={t('welcome.previewMetricConfirmed')} value="28" />
+                    <PreviewMetric label={t('welcome.previewMetricPending')} value="10" />
+                </div>
+            </div>
+        </aside>
+    );
+}
+
+function PreviewMetric({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2">
+            <p className="text-sm font-medium text-muted">{label}</p>
+            <p className="text-sm font-bold text-ink">{value}</p>
+        </div>
     );
 }

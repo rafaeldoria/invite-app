@@ -5,7 +5,7 @@ import { Preferences } from '../components/navigation/Preferences';
 import { useLocale } from '../hooks/use-locale';
 import type { SharedPageProps } from '../types/shared';
 
-export function PublicLayout({ children }: { children: ReactNode }) {
+export function PublicLayout({ children, headerActions }: { children: ReactNode; headerActions?: ReactNode }) {
     const { app, flash } = usePage<SharedPageProps>().props;
     const { locale, setLocale, isChanging, t } = useLocale();
 
@@ -19,7 +19,10 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                     <Link href="/" className="rounded-md text-lg font-bold tracking-[-0.02em] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
                         {app.name}
                     </Link>
-                    <Preferences locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        {headerActions}
+                        <Preferences locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
+                    </div>
                 </div>
             </header>
             <FlashNotice success={flash.success} error={flash.error} dismissLabel={t('flash.dismiss')} />
