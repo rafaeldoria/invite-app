@@ -15,7 +15,7 @@ final class RedirectsToLocalIntendedUrl
             return redirect()->to($intended);
         }
 
-        return redirect()->route('home');
+        return redirect()->route('events.index');
     }
 
     private function isLocalUrl(Request $request, string $url): bool
