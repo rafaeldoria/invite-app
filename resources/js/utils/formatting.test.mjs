@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatDate, formatFormDate, formatFormTime, formatNumber, formatTime, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
+import { formatDate, formatFormDate, formatFormTime, formatNumber, formatTime, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
 
 const instantNearDayBoundary = '2026-01-01T02:30:00Z';
 
@@ -14,6 +14,9 @@ test('date and time formatting uses the explicit event timezone', () => {
 test('event form date formatting follows the selected locale', () => {
     assert.equal(formatFormDate('2026-08-16', 'pt-BR'), '16/08/2026');
     assert.equal(formatFormDate('2026-08-16', 'en-US'), '08/16/2026');
+    assert.equal(maskFormDateInput('16082026'), '16/08/2026');
+    assert.equal(maskFormDateInput('16a08b2026'), '16/08/2026');
+    assert.equal(maskFormDateInput('1608'), '16/08');
     assert.equal(parseFormDateInput('16/08/2026', 'pt-BR'), '2026-08-16');
     assert.equal(parseFormDateInput('08/16/2026', 'en-US'), '2026-08-16');
     assert.equal(parseFormDateInput('2026-08-16', 'pt-BR'), '2026-08-16');
@@ -22,8 +25,11 @@ test('event form date formatting follows the selected locale', () => {
 
 test('event form time formatting follows the selected locale', () => {
     assert.equal(formatFormTime('18:00', 'pt-BR'), '18:00');
-    assert.equal(formatFormTime('18:00', 'en-US'), '6:00 PM');
-    assert.equal(formatFormTime('00:05', 'en-US'), '12:05 AM');
+    assert.equal(formatFormTime('18:00', 'en-US'), '18:00');
+    assert.equal(formatFormTime('00:05', 'en-US'), '00:05');
+    assert.equal(maskFormTimeInput('1800'), '18:00');
+    assert.equal(maskFormTimeInput('18h00'), '18:00');
+    assert.equal(maskFormTimeInput('18'), '18');
     assert.equal(parseFormTimeInput('18:00'), '18:00');
     assert.equal(parseFormTimeInput('6:00 PM'), '18:00');
     assert.equal(parseFormTimeInput('12:05 AM'), '00:05');

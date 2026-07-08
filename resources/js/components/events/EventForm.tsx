@@ -5,7 +5,7 @@ import { Field } from '../forms/Field';
 import { Select, Textarea, TextInput } from '../forms/controls';
 import { FormErrorSummary } from '../forms/FormErrorSummary';
 import { Button } from '../ui/Button';
-import { formatFormDate, formatFormTime, parseFormDateInput, parseFormTimeInput } from '../../utils/formatting';
+import { formatFormDate, formatFormTime, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput } from '../../utils/formatting';
 import type { EventCoverImage, EventDetail, EventFormData, TimezoneOption } from '../../types/events';
 import { translate, type TranslationKey } from '../../locales';
 import type { Locale } from '../../types/shared';
@@ -94,7 +94,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     const coverAlt = event?.name ? t('events.coverAlt', { name: event.name }) : '';
     const formTitle = mode === 'create' ? t('events.create.title') : t('events.edit.title');
     const datePlaceholder = locale === 'pt-BR' ? 'DD/MM/AAAA' : 'MM/DD/YYYY';
-    const timePlaceholder = locale === 'pt-BR' ? '18:00' : '6:00 PM';
+    const timePlaceholder = '18:00';
     const coverIsNotReady = selectedCoverFile !== null && form.data.cover_image === null;
 
     useEffect(() => {
@@ -416,9 +416,10 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     }
 
     function changeStartsDate(value: string) {
-        setStartsDateInput(value);
+        const maskedValue = maskFormDateInput(value);
+        setStartsDateInput(maskedValue);
 
-        const parsedDate = parseFormDateInput(value, locale);
+        const parsedDate = parseFormDateInput(maskedValue, locale);
 
         if (parsedDate !== null) {
             form.setData('starts_date', parsedDate);
@@ -439,9 +440,10 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     }
 
     function changeStartsTime(value: string) {
-        setStartsTimeInput(value);
+        const maskedValue = maskFormTimeInput(value);
+        setStartsTimeInput(maskedValue);
 
-        const parsedTime = parseFormTimeInput(value);
+        const parsedTime = parseFormTimeInput(maskedValue);
 
         if (parsedTime !== null) {
             form.setData('starts_time', parsedTime);
@@ -490,10 +492,10 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
 
                     <div className="grid gap-5 sm:grid-cols-2">
                         <Field id="event-starts-date" label={t('events.form.date')} required error={form.errors.starts_date}>
-                            <TextInput id="event-starts-date" type="text" inputMode="numeric" placeholder={datePlaceholder} value={startsDateInput} invalid={Boolean(form.errors.starts_date)} onChange={(change) => changeStartsDate(change.target.value)} onBlur={blurStartsDate} autoComplete="off" />
+                            <TextInput id="event-starts-date" type="text" inputMode="numeric" placeholder={datePlaceholder} value={startsDateInput} maxLength={10} invalid={Boolean(form.errors.starts_date)} onChange={(change) => changeStartsDate(change.target.value)} onBlur={blurStartsDate} autoComplete="off" />
                         </Field>
                         <Field id="event-starts-time" label={t('events.form.time')} required error={form.errors.starts_time}>
-                            <TextInput id="event-starts-time" type="text" placeholder={timePlaceholder} value={startsTimeInput} invalid={Boolean(form.errors.starts_time)} onChange={(change) => changeStartsTime(change.target.value)} onBlur={blurStartsTime} autoComplete="off" />
+                            <TextInput id="event-starts-time" type="text" inputMode="numeric" placeholder={timePlaceholder} value={startsTimeInput} maxLength={5} invalid={Boolean(form.errors.starts_time)} onChange={(change) => changeStartsTime(change.target.value)} onBlur={blurStartsTime} autoComplete="off" />
                         </Field>
                     </div>
 
