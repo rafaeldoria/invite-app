@@ -78,6 +78,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     const formTitle = mode === 'create' ? t('events.create.title') : t('events.edit.title');
     const datePlaceholder = locale === 'pt-BR' ? 'DD/MM/AAAA' : 'MM/DD/YYYY';
     const timePlaceholder = locale === 'pt-BR' ? '18:00' : '6:00 PM';
+    const coverIsNotReady = selectedCoverFile !== null && form.data.cover_image === null;
 
     useEffect(() => {
         setStartsDateInput(formatFormDate(form.data.starts_date, locale));
@@ -178,6 +179,8 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     }, [selectedCoverFile, coverAdjustment, locale]);
 
     function selectCover(file: File | null) {
+        coverProcessingIdRef.current += 1;
+        setIsPreparingCover(false);
         setFileError(null);
 
         if (previewUrl) {
@@ -199,6 +202,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
 
         if (!allowedCoverTypes.includes(file.type)) {
             setSelectedCoverFile(null);
+            setIsPreparingCover(false);
             setFileError(t('events.form.coverTypeError'));
             form.setData('cover_image', null);
 
@@ -209,6 +213,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
 
         if (file.size > maxCoverBytes) {
             setSelectedCoverFile(null);
+            setIsPreparingCover(false);
             setFileError(t('events.form.coverSizeError'));
             form.setData('cover_image', null);
 
@@ -218,6 +223,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
         }
 
         setCoverAdjustment(defaultCoverAdjustment);
+        setIsPreparingCover(true);
         setSelectedCoverFile(file);
         setSourcePreviewUrl(URL.createObjectURL(file));
         form.setData({
@@ -344,7 +350,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     function submit(submitEvent: FormEvent<HTMLFormElement>) {
         submitEvent.preventDefault();
 
-        if (fileError || isPreparingCover) {
+        if (fileError || isPreparingCover || coverIsNotReady) {
             fileInputRef.current?.focus();
 
             return;
@@ -528,7 +534,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Button type="button" variant="secondary" onClick={cancel}>{t('events.form.cancel')}</Button>
-                <Button type="submit" loading={form.processing} loadingLabel={mode === 'create' ? t('events.form.creating') : t('events.form.updating')} disabled={isPreparingCover}>
+                <Button type="submit" loading={form.processing} loadingLabel={mode === 'create' ? t('events.form.creating') : t('events.form.updating')} disabled={isPreparingCover || coverIsNotReady}>
                     {mode === 'create' ? t('events.form.create') : t('events.form.update')}
                 </Button>
             </div>

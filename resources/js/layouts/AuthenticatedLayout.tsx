@@ -39,7 +39,7 @@ export function AuthenticatedLayout({ children, navigation = [] }: { children: R
             </header>
             <MobileNavigation open={menuOpen} onClose={() => setMenuOpen(false)} items={items} title={t('app.navigation')} closeLabel={t('app.closeMenu')}>
                 <p className="mb-3 text-sm font-semibold text-muted">{t('settings.menu')}</p>
-                <SettingsMenu locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
+                <SettingsMenu locale={locale} setLocale={setLocale} isChanging={isChanging} placement="top" t={t} />
             </MobileNavigation>
             <FlashNotice success={flash.success} error={flash.error} dismissLabel={t('flash.dismiss')} />
             {children}

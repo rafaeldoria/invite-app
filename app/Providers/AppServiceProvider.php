@@ -44,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
             return $this->emailAwareLimits($request, $tooManyAttempts);
         });
 
+        RateLimiter::for('password-change', function (Request $request) use ($tooManyAttempts) {
+            return Limit::perMinute(5)
+                ->by(($request->user()?->id ?? 'guest').'|'.$request->ip())
+                ->response($tooManyAttempts);
+        });
+
         RateLimiter::for('verification-resend', function (Request $request) use ($tooManyAttempts) {
             return Limit::perMinute(3)
                 ->by(($request->user()?->id ?? $request->ip()).'|'.$request->ip())

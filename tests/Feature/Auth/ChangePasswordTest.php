@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -46,6 +47,26 @@ class ChangePasswordTest extends TestCase
         $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
     }
 
+    public function test_password_change_clears_outstanding_reset_tokens(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password'),
+        ]);
+        $token = Password::broker()->createToken($user);
+
+        $this->assertTrue(Password::broker()->tokenExists($user, $token));
+
+        $this->actingAs($user)
+            ->patch(route('settings.password.update'), [
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertRedirect();
+
+        $this->assertFalse(Password::broker()->tokenExists($user->refresh(), $token));
+    }
+
     public function test_current_password_must_match(): void
     {
         $user = User::factory()->create([
@@ -63,5 +84,33 @@ class ChangePasswordTest extends TestCase
             ->assertSessionHasErrors(['current_password']);
 
         $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    public function test_password_change_attempts_are_rate_limited(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password'),
+        ]);
+
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.55'])
+                ->actingAs($user)
+                ->from(route('settings.password.edit'))
+                ->patch(route('settings.password.update'), [
+                    'current_password' => 'wrong-password',
+                    'password' => 'new-password',
+                    'password_confirmation' => 'new-password',
+                ])
+                ->assertRedirect(route('settings.password.edit'));
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.55'])
+            ->actingAs($user)
+            ->patch(route('settings.password.update'), [
+                'current_password' => 'wrong-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertTooManyRequests();
     }
 }

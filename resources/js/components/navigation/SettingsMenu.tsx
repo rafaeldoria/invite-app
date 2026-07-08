@@ -8,10 +8,11 @@ type SettingsMenuProps = {
     locale: Locale;
     setLocale: (locale: Locale) => void;
     isChanging?: boolean;
+    placement?: 'bottom' | 'top';
     t: (key: TranslationKey) => string;
 };
 
-export function SettingsMenu({ locale, setLocale, isChanging = false, t }: SettingsMenuProps) {
+export function SettingsMenu({ locale, setLocale, isChanging = false, placement = 'bottom', t }: SettingsMenuProps) {
     const { mode, setMode } = useTheme();
     const [open, setOpen] = useState(false);
     const [panel, setPanel] = useState<'language' | 'theme' | null>(null);
@@ -80,7 +81,7 @@ export function SettingsMenu({ locale, setLocale, isChanging = false, t }: Setti
             </button>
 
             {open ? (
-                <div role="menu" className="absolute right-0 top-12 z-tooltip w-72 rounded-lg border border-border bg-surface p-2 text-sm shadow-lg">
+                <div role="menu" className={`absolute right-0 z-tooltip w-72 rounded-lg border border-border bg-surface p-2 text-sm shadow-lg ${placement === 'top' ? 'bottom-12' : 'top-12'}`}>
                     <Link
                         href="/settings/password"
                         role="menuitem"

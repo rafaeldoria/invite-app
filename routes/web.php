@@ -76,7 +76,9 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::get('/settings/password', [ChangePasswordController::class, 'edit'])->name('settings.password.edit');
-    Route::patch('/settings/password', [ChangePasswordController::class, 'update'])->name('settings.password.update');
+    Route::patch('/settings/password', [ChangePasswordController::class, 'update'])
+        ->middleware('throttle:password-change')
+        ->name('settings.password.update');
 
     Route::get('/verify-email', EmailVerificationPromptController::class)->name('verification.notice');
     Route::get('/verify-email/{id}/{hash}', VerifyEmailController::class)
