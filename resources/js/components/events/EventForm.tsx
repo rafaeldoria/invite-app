@@ -58,11 +58,28 @@ function buildInitialData(event: EventDetail | undefined, defaultTimezone: strin
     };
 }
 
+function normalizeCoverAdjustment(current: CoverAdjustment, nextAdjustment: Partial<CoverAdjustment>): CoverAdjustment {
+    return {
+        ...current,
+        ...nextAdjustment,
+        zoom: clamp(nextAdjustment.zoom ?? current.zoom, 1, 3),
+        positionX: clamp(nextAdjustment.positionX ?? current.positionX, 0, 100),
+        positionY: clamp(nextAdjustment.positionY ?? current.positionY, 0, 100),
+    };
+}
+
+function coverAdjustmentsMatch(firstAdjustment: CoverAdjustment, secondAdjustment: CoverAdjustment): boolean {
+    return firstAdjustment.zoom === secondAdjustment.zoom
+        && firstAdjustment.positionX === secondAdjustment.positionX
+        && firstAdjustment.positionY === secondAdjustment.positionY;
+}
+
 export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, defaultTimezone, locale, t }: EventFormProps) {
     const form = useForm<EventFormData>(buildInitialData(event, defaultTimezone));
     const fileInputRef = useRef<HTMLInputElement>(null);
     const coverProcessingIdRef = useRef(0);
     const coverDragRef = useRef<CoverDragState | null>(null);
+    const coverAdjustmentRef = useRef<CoverAdjustment>(defaultCoverAdjustment);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [sourcePreviewUrl, setSourcePreviewUrl] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
@@ -84,6 +101,10 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
         setStartsDateInput(formatFormDate(form.data.starts_date, locale));
         setStartsTimeInput(formatFormTime(form.data.starts_time, locale));
     }, [locale]);
+
+    useEffect(() => {
+        coverAdjustmentRef.current = coverAdjustment;
+    }, [coverAdjustment]);
 
     const errors = useMemo(() => {
         const fieldIds: Partial<Record<keyof EventFormData, string>> = {
@@ -223,6 +244,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
         }
 
         setCoverAdjustment(defaultCoverAdjustment);
+        coverAdjustmentRef.current = defaultCoverAdjustment;
         setIsPreparingCover(true);
         setSelectedCoverFile(file);
         setSourcePreviewUrl(URL.createObjectURL(file));
@@ -241,6 +263,7 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
         setIsPreparingCover(false);
         setIsDraggingCover(false);
         setCoverAdjustment(defaultCoverAdjustment);
+        coverAdjustmentRef.current = defaultCoverAdjustment;
 
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
@@ -263,13 +286,22 @@ export function EventForm({ mode, submitUrl, indexUrl, event, timezoneOptions, d
     }
 
     function updateCoverAdjustment(nextAdjustment: Partial<CoverAdjustment>) {
-        setCoverAdjustment((current) => ({
-            ...current,
-            ...nextAdjustment,
-            zoom: clamp(nextAdjustment.zoom ?? current.zoom, 1, 3),
-            positionX: clamp(nextAdjustment.positionX ?? current.positionX, 0, 100),
-            positionY: clamp(nextAdjustment.positionY ?? current.positionY, 0, 100),
-        }));
+        const currentAdjustment = coverAdjustmentRef.current;
+        const adjustedCoverAdjustment = normalizeCoverAdjustment(currentAdjustment, nextAdjustment);
+
+        if (coverAdjustmentsMatch(currentAdjustment, adjustedCoverAdjustment)) {
+            return;
+        }
+
+        coverAdjustmentRef.current = adjustedCoverAdjustment;
+
+        if (selectedCoverFile) {
+            coverProcessingIdRef.current += 1;
+            setIsPreparingCover(true);
+            form.setData('cover_image', null);
+        }
+
+        setCoverAdjustment(adjustedCoverAdjustment);
     }
 
     function zoomCover(delta: number) {
