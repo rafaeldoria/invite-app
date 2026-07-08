@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -65,6 +66,35 @@ class ChangePasswordTest extends TestCase
             ->assertRedirect();
 
         $this->assertFalse(Password::broker()->tokenExists($user->refresh(), $token));
+    }
+
+    public function test_password_change_revokes_other_database_sessions(): void
+    {
+        config()->set('session.driver', 'database');
+
+        $user = User::factory()->create([
+            'password' => Hash::make('old-password'),
+        ]);
+
+        DB::table('sessions')->insert([
+            'id' => 'other-session',
+            'user_id' => $user->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Feature test',
+            'payload' => 'payload',
+            'last_activity' => now()->timestamp,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('settings.password.update'), [
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('sessions', ['id' => 'other-session']);
+        $this->assertSame(1, DB::table('sessions')->where('user_id', $user->id)->count());
     }
 
     public function test_current_password_must_match(): void

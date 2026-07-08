@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
@@ -32,6 +33,7 @@ class ChangePasswordController extends Controller
         Password::broker()->deleteToken($user);
 
         $request->session()->regenerate();
+        $this->revokeOtherDatabaseSessions((int) $user->getAuthIdentifier(), $request->session()->getId());
 
         Log::info('security.password.changed', [
             'user_id' => $user->id,
@@ -39,5 +41,18 @@ class ChangePasswordController extends Controller
         ]);
 
         return back()->with('success', __('auth.password_changed'));
+    }
+
+    private function revokeOtherDatabaseSessions(int $userId, string $currentSessionId): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::connection(config('session.connection'))
+            ->table((string) config('session.table', 'sessions'))
+            ->where('user_id', $userId)
+            ->where('id', '!=', $currentSessionId)
+            ->delete();
     }
 }
