@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState, type ReactNode } from 'react';
 import { FlashNotice } from '../components/feedback/FlashNotice';
 import { MobileNavigation, NavigationLinks } from '../components/navigation/AppNavigation';
-import { Preferences } from '../components/navigation/Preferences';
+import { SettingsMenu } from '../components/navigation/SettingsMenu';
 import { useLocale } from '../hooks/use-locale';
 import type { NavigationItem, SharedPageProps } from '../types/shared';
 
@@ -24,7 +24,7 @@ export function AuthenticatedLayout({ children, navigation = [] }: { children: R
                     </Link>
                     <div className="hidden items-center gap-4 md:flex">
                         <NavigationLinks items={items} ariaLabel={t('app.navigation')} />
-                        <Preferences locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
+                        <SettingsMenu locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
                     </div>
                     <button
                         type="button"
@@ -38,8 +38,8 @@ export function AuthenticatedLayout({ children, navigation = [] }: { children: R
                 </div>
             </header>
             <MobileNavigation open={menuOpen} onClose={() => setMenuOpen(false)} items={items} title={t('app.navigation')} closeLabel={t('app.closeMenu')}>
-                <p className="mb-3 text-sm font-semibold text-muted">{t('app.preferences')}</p>
-                <Preferences locale={locale} setLocale={setLocale} isChanging={isChanging} t={t} />
+                <p className="mb-3 text-sm font-semibold text-muted">{t('settings.menu')}</p>
+                <SettingsMenu locale={locale} setLocale={setLocale} isChanging={isChanging} placement="top" t={t} />
             </MobileNavigation>
             <FlashNotice success={flash.success} error={flash.error} dismissLabel={t('flash.dismiss')} />
             {children}

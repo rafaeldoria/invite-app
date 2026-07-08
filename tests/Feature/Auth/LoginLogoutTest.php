@@ -30,7 +30,7 @@ class LoginLogoutTest extends TestCase
             'email' => ' ORGANIZER@example.com ',
             'password' => 'password-123',
             'remember' => '1',
-        ])->assertRedirect(route('home'));
+        ])->assertRedirect(route('events.index'));
 
         $this->assertAuthenticatedAs($user);
     }
@@ -124,7 +124,7 @@ class LoginLogoutTest extends TestCase
                 'email' => $user->email,
                 'password' => 'password-123',
             ])
-            ->assertRedirect(route('home'));
+            ->assertRedirect(route('events.index'));
     }
 
     public function test_logout_invalidates_the_authenticated_session(): void

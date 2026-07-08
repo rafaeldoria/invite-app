@@ -30,7 +30,8 @@ Build localized organizer screens for listing, creating, viewing, editing, and d
 - File progress, preview, replace, remove, success, validation, and provider failure states are understandable.
 - Delete requires deliberate confirmation and returns to the event list on success.
 - Forms prevent double submit and preserve non-file values after validation errors.
-- No map, rich editor, cropper, template engine, or other out-of-scope control is added.
+- No map, rich editor, template engine, or other out-of-scope control is added.
+- User-requested exception: the cover upload form may include a simple client-side resize and framing control, without adding a dependency or a generalized image editor.
 
 ## Task Test Plan
 
@@ -39,4 +40,3 @@ Build localized organizer screens for listing, creating, viewing, editing, and d
 - Test dates around midnight with browser timezone differing from event timezone.
 - Test empty and multi-event list, long content, keyboard behavior, and both locales/themes.
 - Run frontend build and relevant tests.
-

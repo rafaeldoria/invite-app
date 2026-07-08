@@ -22,6 +22,15 @@ export function formatFormDate(value: string, locale: Locale): string {
         : `${month}/${day}/${year}`;
 }
 
+export function maskFormDateInput(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    const dayOrMonth = digits.slice(0, 2);
+    const monthOrDay = digits.slice(2, 4);
+    const year = digits.slice(4, 8);
+
+    return [dayOrMonth, monthOrDay, year].filter(Boolean).join('/');
+}
+
 export function parseFormDateInput(value: string, locale: Locale): string | null {
     const input = value.trim();
 
@@ -54,22 +63,22 @@ export function parseFormDateInput(value: string, locale: Locale): string | null
     return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-export function formatFormTime(value: string, locale: Locale): string {
+export function formatFormTime(value: string, _locale: Locale): string {
     const time = parseTwentyFourHourTime(value);
 
     if (time === null) {
         return value;
     }
 
-    if (locale === 'pt-BR') {
-        return `${time.hour}:${time.minute}`;
-    }
+    return `${time.hour}:${time.minute}`;
+}
 
-    const hour = Number(time.hour);
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
+export function maskFormTimeInput(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 4);
+    const hour = digits.slice(0, 2);
+    const minute = digits.slice(2, 4);
 
-    return `${displayHour}:${time.minute} ${period}`;
+    return [hour, minute].filter(Boolean).join(':');
 }
 
 export function parseFormTimeInput(value: string): string | null {
