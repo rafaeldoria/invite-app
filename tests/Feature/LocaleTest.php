@@ -136,7 +136,7 @@ class LocaleTest extends TestCase
         $this->assertSame(array_keys(Arr::dot($english)), array_keys(Arr::dot($portuguese)));
     }
 
-    public function test_locale_preference_is_rate_limited_with_a_localized_message(): void
+    public function test_locale_preference_rate_limit_renders_the_localized_error_page(): void
     {
         $this->withSession(['locale' => 'en-US']);
 
@@ -146,7 +146,10 @@ class LocaleTest extends TestCase
 
         $this->patch(route('locale.update'), ['locale' => 'en-US'])
             ->assertTooManyRequests()
-            ->assertSee('Too many attempts. Please wait a moment and try again.');
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Error')
+                ->where('status', 429)
+                ->where('locale', 'en-US'));
     }
 
     public function test_inertia_locale_preference_throttle_renders_the_localized_error_page(): void
