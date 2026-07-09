@@ -92,9 +92,10 @@ class ErrorPageTest extends TestCase
     public function test_inertia_navigation_errors_render_the_same_error_page(): void
     {
         $this->useProductionErrorRendering();
+        config()->set('app.asset_url', 'https://assets.example.test');
 
         $event = Event::factory()->create();
-        $assetVersion = app(HandleInertiaRequests::class)->version(request());
+        $assetVersion = (string) app(HandleInertiaRequests::class)->version(request());
 
         $this->withSession(['locale' => 'en-US'])
             ->withHeaders([
