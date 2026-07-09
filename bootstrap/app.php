@@ -3,6 +3,8 @@
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
+use App\Support\Locale;
+use Illuminate\Cookie\CookieValuePrefix;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -10,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Vite;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,11 +51,27 @@ return Application::configure(basePath: dirname(__DIR__))
                 return $response;
             }
 
-            // Keep detailed local debug pages for direct server errors while still rendering
+            // Keep detailed local debug pages for server errors while still rendering
             // localized Inertia pages for public 404s and production failures.
-            if (config('app.debug') && $status >= 500 && ! $request->header('X-Inertia')) {
+            if (config('app.debug') && $status >= 500) {
                 return $response;
             }
+
+            $hasSessionLocale = $request->hasSession() && $request->session()->has('locale');
+            $localePreference = $hasSessionLocale
+                ? $request->session()->get('locale')
+                : $request->cookie('locale');
+
+            if (! $hasSessionLocale && (! is_string($localePreference) || ! in_array($localePreference, Locale::supported(), true))) {
+                try {
+                    $decryptedLocale = app('encrypter')->decrypt((string) $request->cookies->get('locale'), false);
+                    $localePreference = CookieValuePrefix::validate('locale', $decryptedLocale, app('encrypter')->getAllKeys());
+                } catch (Throwable) {
+                    $localePreference = null;
+                }
+            }
+
+            App::setLocale(Locale::normalize($localePreference));
 
             Vite::useCspNonce();
 

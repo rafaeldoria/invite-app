@@ -76,6 +76,19 @@ class ErrorPageTest extends TestCase
                 ->where('locale', 'en-US'));
     }
 
+    public function test_missing_routes_apply_selected_locale_from_cookie(): void
+    {
+        $this->useProductionErrorRendering();
+
+        $this->withCookie('locale', 'en-US')
+            ->get('/does-not-exist')
+            ->assertNotFound()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Error')
+                ->where('status', 404)
+                ->where('locale', 'en-US'));
+    }
+
     public function test_inertia_navigation_errors_render_the_same_error_page(): void
     {
         $this->useProductionErrorRendering();
@@ -119,6 +132,18 @@ class ErrorPageTest extends TestCase
             ->assertInternalServerError()
             ->assertHeaderMissing('X-Inertia')
             ->assertSee('Debug response check')
+            ->assertDontSee('"component":"Error"', false);
+    }
+
+    public function test_inertia_debug_server_errors_keep_laravels_debug_response(): void
+    {
+        config()->set('app.debug', true);
+
+        Route::get('/error-page/inertia-debug-server-error', fn () => throw new \RuntimeException('Inertia debug response check'));
+
+        $this->withHeader(Header::INERTIA, 'true')
+            ->get('/error-page/inertia-debug-server-error')
+            ->assertInternalServerError()
             ->assertDontSee('"component":"Error"', false);
     }
 
