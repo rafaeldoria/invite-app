@@ -81,7 +81,7 @@ class InertiaApplicationShellTest extends TestCase
         }
     }
 
-    public function test_non_inertia_errors_keep_laravels_standard_response(): void
+    public function test_direct_web_errors_render_the_error_page_with_the_original_status(): void
     {
         config()->set('app.debug', false);
         $this->app->instance('env', 'production');
@@ -90,10 +90,16 @@ class InertiaApplicationShellTest extends TestCase
 
         $this->get('/shell-test/forbidden')
             ->assertForbidden()
-            ->assertHeaderMissing('X-Inertia');
+            ->assertHeaderMissing('X-Inertia')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Error')
+                ->where('status', 403));
 
         $this->get('/shell-test/missing')
             ->assertNotFound()
-            ->assertHeaderMissing('X-Inertia');
+            ->assertHeaderMissing('X-Inertia')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Error')
+                ->where('status', 404));
     }
 }
