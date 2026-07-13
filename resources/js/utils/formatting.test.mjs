@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatDate, formatFormDate, formatFormTime, formatNumber, formatTime, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
+import { formatDate, formatFormDate, formatFormTime, formatNumber, formatTime, formatTimeZoneName, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
 
 const instantNearDayBoundary = '2026-01-01T02:30:00Z';
 
@@ -9,6 +9,12 @@ test('date and time formatting uses the explicit event timezone', () => {
     assert.match(formatDate(instantNearDayBoundary, 'en-US', 'America/Sao_Paulo'), /December 31, 2025/);
     assert.equal(formatTime(instantNearDayBoundary, 'pt-BR', 'America/Sao_Paulo'), '23:30');
     assert.equal(formatTime(instantNearDayBoundary, 'en-US', 'America/Sao_Paulo'), '11:30 PM');
+});
+
+test('timezone labels are readable and localized instead of raw IANA identifiers', () => {
+    assert.match(formatTimeZoneName('2026-08-16T21:00:00Z', 'pt-BR', 'America/Sao_Paulo'), /Brasília/);
+    assert.match(formatTimeZoneName('2026-08-16T21:00:00Z', 'en-US', 'America/Sao_Paulo'), /Brasilia/);
+    assert.notEqual(formatTimeZoneName('2026-08-16T21:00:00Z', 'pt-BR', 'America/Sao_Paulo'), 'America/Sao_Paulo');
 });
 
 test('event form date formatting follows the selected locale', () => {
