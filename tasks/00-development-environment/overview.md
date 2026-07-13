@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the declared MVP stack reproducible for development and production validation before feature integration: PHP 8.4+, Laravel, Node/Vite, PostgreSQL, S3 configuration, Nginx, and documented Cloudflare/VPS boundaries.
+Make the declared production stack reproducible for development and production validation before feature integration: PHP 8.4+, Laravel, Node/Vite, PostgreSQL, S3 configuration, Nginx, and documented Cloudflare/VPS boundaries.
 
 This is an enabling track, not product functionality. It can run in parallel with frontend foundation and must stay minimal.
 
@@ -11,7 +11,7 @@ This is an enabling track, not product functionality. It can run in parallel wit
 - Composer currently permits PHP `^8.3`; target is PHP 8.4+.
 - `.env.example` and PHPUnit default to SQLite; target application database is PostgreSQL.
 - No Docker, Compose, or Nginx files exist in this directory.
-- Laravel contains an S3 driver configuration path, but the MVP environment contract is not documented or verified.
+- Laravel contains an S3 driver configuration path, but the production environment contract is not documented or verified.
 
 ## Minimal Local Topology
 
@@ -35,4 +35,3 @@ This is an enabling track, not product functionality. It can run in parallel wit
 - Application integration path uses PostgreSQL, not a silent SQLite fallback.
 - S3 credentials/bucket/CORS/visibility requirements are documented without secrets.
 - Production handoff states responsibilities for VPS, Nginx, Cloudflare, TLS, persistent data, backups, and deploy commands without building a complex platform.
-

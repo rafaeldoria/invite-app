@@ -12,7 +12,7 @@ Allow a verified organizer to create, view, edit, and delete only their own even
 | `description` | Required plain text, 1–2,000 characters. Render safely with preserved line breaks. |
 | `starts_at` | Required date/time interpreted in the event timezone and stored as an instant. |
 | `timezone` | Required valid IANA timezone; default `America/Sao_Paulo`. A selector may initially expose only supported common values. |
-| `location` | Required free-form string, 1–255 characters. No map/geocoding in MVP. |
+| `location` | Required free-form string, 1–255 characters. No map/geocoding in the current production scope. |
 | `theme` | Optional string, maximum 80 characters. It is descriptive, not a template engine. |
 | `cover_image` | Optional JPEG, PNG, or WebP, maximum 5 MiB. Store object key and basic metadata. |
 | `public_id` | Server-generated opaque identifier used in public URLs; never accepted from organizer forms. |
@@ -43,4 +43,3 @@ Backend and frontend can run in parallel after agreeing on routes, `Event` prop/
 - Image upload, replacement, removal, deletion cleanup, and upload failure behavior are deterministic.
 - Public props never expose S3 keys, owner details, or internal IDs.
 - Event list/detail queries avoid N+1 access and work with PostgreSQL.
-

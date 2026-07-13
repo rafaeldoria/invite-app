@@ -1,6 +1,6 @@
-# MVP Delivery Plan
+# Production Delivery Plan
 
-This directory is the implementation source of truth for the invitation platform MVP. It describes work only; it does not include implementation code.
+This directory is the implementation source of truth for the invitation platform. It describes work only; it does not include implementation code.
 
 ## Analysis Summary
 
@@ -17,7 +17,7 @@ Reference availability during analysis:
 
 These observations informed usability priorities, not implementation design. Laravel, Inertia, React, and project conventions remain authoritative.
 
-## Fixed MVP Decisions
+## Fixed Product Decisions
 
 These decisions let backend and frontend tasks proceed without repeating product analysis:
 
@@ -31,9 +31,9 @@ These decisions let backend and frontend tasks proceed without repeating product
 - The general public event URL also permits RSVP. A first response creates a guest record; repeated updates use a server-issued, signed management capability rather than name matching.
 - `companion_count` is derived as adults plus children and is never a third independently editable value.
 - The named guest is not included in companion counts. When declining, both companion counts are stored as zero.
-- No phone number, email address, dietary restriction, notes, RSVP deadline, end time, address geocoding, or map integration is required for the initial MVP.
+- No phone number, email address, dietary restriction, notes, RSVP deadline, end time, address geocoding, or map integration is required for the current production scope.
 - Cover images use the Laravel `s3` disk. Store object keys, not expiring URLs. URL generation is a presentation concern.
-- The MVP uses session authentication and Laravel's built-in password reset/email verification capabilities. No social login or token API is needed.
+- The product uses session authentication and Laravel's built-in password reset/email verification capabilities. No social login or token API is needed.
 - Theme switching is device-aware (`system`, `light`, `dark`) and persisted in a cookie/local storage for guests and in the user preference only if that persistence is already justified during implementation. Do not add a settings subsystem for it.
 
 ## Cross-Feature Contracts
@@ -87,7 +87,7 @@ Backend and frontend tasks marked parallelizable can start together after their 
 - `00-development-environment`: PHP/Docker/PostgreSQL/S3/Nginx runtime and production handoff.
 - `01-frontend-foundation`: layouts, shared UI, feedback primitives, themes, and conventions.
 - `02-internationalization`: locale resolution and centralized backend/frontend messages.
-- `03-authentication-security`: registration, sessions, verification, password reset, and MVP hardening.
+- `03-authentication-security`: registration, sessions, verification, password reset, and production hardening.
 - `04-event-management`: event CRUD and S3 cover images.
 - `05-event-sharing`: public event page, stable public URL, custom message, and WhatsApp sharing.
 - `06-rsvp`: public confirmation/decline flow and safe response updates.
@@ -98,7 +98,7 @@ Backend and frontend tasks marked parallelizable can start together after their 
 
 - Acceptance criteria in the relevant overview and implementation task are satisfied.
 - Tests in the feature test plan pass, including authorization and validation failures.
-- No new functionality outside the MVP has been added.
+- No new functionality outside the requested product scope has been added.
 - New code, identifiers, files, comments, and translation keys are English.
 - User-facing copy exists in both supported locales and is not hardcoded in React or domain code.
 - UI is keyboard accessible, mobile-first, and usable in light and dark themes.
@@ -112,7 +112,7 @@ Backend and frontend tasks marked parallelizable can start together after their 
 - **Missing containers:** Docker files are not present in this directory. Environment setup is a prerequisite outside these feature implementations and must not be silently invented inside a feature task.
 - **S3 failures:** uploads can partially succeed around database failures. Use deterministic replacement/deletion handling, test failure behavior, and do not delete the previous image until the replacement is safely persisted.
 - **Public privacy:** opaque identifiers reduce enumeration but are not authorization. Public props must use an explicit allowlist and never serialize the owner, guest list, or internal IDs.
-- **RSVP identity:** matching by name is ambiguous and unsafe. Individual tokens plus a signed response-management capability keep the MVP simple without requiring invitees to create accounts.
+- **RSVP identity:** matching by name is ambiguous and unsafe. Individual tokens plus a signed response-management capability keep the product simple without requiring invitees to create accounts.
 - **Timezones:** a date and time without an IANA timezone will drift in sharing and localization. Store the timezone now; keep the UI to one sensible default if a selector is not validated.
 - **Translations:** backend and frontend can use separate catalogs, but keys and meaning can drift. Keep a short shared key convention and test both locales instead of introducing a translation platform.
 - **Design system scope:** build only primitives consumed by the listed features. Do not create a general-purpose component library, Storybook, global state library, or headless UI dependency by default.

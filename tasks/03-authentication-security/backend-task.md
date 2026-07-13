@@ -1,4 +1,4 @@
-# Backend Task: Session Authentication and MVP Hardening
+# Backend Task: Session Authentication and Production Hardening
 
 ## Objective
 
@@ -48,4 +48,3 @@ Implement Laravel-native organizer authentication and security controls without 
 - Assert password reset changes the hash and token cannot be replayed.
 - Inspect representative logs for secret leakage.
 - Run the full backend test suite and Pint.
-

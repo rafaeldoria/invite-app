@@ -2,7 +2,7 @@
 
 ## Goal
 
-Cover the `AGENTS.md` MVP requirement for manual guest registration and individual invitation links, while keeping guest management intentionally small.
+Cover the `AGENTS.md` product requirement for manual guest registration and individual invitation links, while keeping guest management intentionally small.
 
 ## Guest Contract
 
@@ -11,7 +11,7 @@ Cover the `AGENTS.md` MVP requirement for manual guest registration and individu
 - RSVP status: `pending`, `confirmed`, or `declined`; default `pending`.
 - Adult and child companion counts default to zero.
 - Server-generated unique opaque invitation token.
-- No email, phone, address, tags, groups, imports, or custom fields in MVP.
+- No email, phone, address, tags, groups, imports, or custom fields in the current production scope.
 
 ## Organizer Flow
 
@@ -37,4 +37,3 @@ Backend starts after event ownership exists. Frontend can proceed with the fixed
 - Pagination and status filters preserve predictable navigation and empty states.
 - Status/count invariants match RSVP behavior.
 - Guest list data is never exposed by the public event route.
-
