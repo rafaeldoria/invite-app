@@ -5,7 +5,7 @@ import { ButtonLink } from '../../components/ui/Button';
 import { PublicLayout } from '../../layouts/PublicLayout';
 import { useLocale } from '../../hooks/use-locale';
 import type { PublicEventDetail, PublicEventMeta } from '../../types/events';
-import { formatDate, formatTime } from '../../utils/formatting';
+import { formatDate, formatTime, formatTimeZoneName } from '../../utils/formatting';
 
 export default function Show({ event, meta }: { event: PublicEventDetail; meta: PublicEventMeta }) {
     const { locale, t } = useLocale();
@@ -43,7 +43,7 @@ export default function Show({ event, meta }: { event: PublicEventDetail; meta: 
                             <div className="rounded-lg bg-canvas p-4">
                                 <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
                                 <dd className="mt-1 text-muted">{formatDate(event.starts_at, locale, event.timezone)} · {formatTime(event.starts_at, locale, event.timezone)}</dd>
-                                <dd className="mt-1 text-xs font-medium text-muted">{event.timezone}</dd>
+                                <dd className="mt-1 text-xs font-medium text-muted">{formatTimeZoneName(event.starts_at, locale, event.timezone)}</dd>
                             </div>
                             <div className="rounded-lg bg-canvas p-4">
                                 <dt className="font-semibold text-ink">{t('events.fields.location')}</dt>

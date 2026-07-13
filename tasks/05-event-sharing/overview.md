@@ -19,7 +19,7 @@ Let an organizer share an attractive, unlisted public event page through a stabl
 - WhatsApp sharing uses an encoded `https://wa.me/?text=...` URL and degrades to copy-link/copy-message actions.
 - The message preview is visible before sharing.
 
-## Simple MVP Enhancements
+## Simple Product Enhancements
 
 - One-tap copy link with success feedback.
 - Native Web Share API when supported, with WhatsApp and copy actions always available as fallbacks.
@@ -40,4 +40,3 @@ Backend and frontend can run in parallel after event management fixes the public
 - WhatsApp URL is correctly encoded and includes summary/link once.
 - Copy and native share actions provide accessible success/failure feedback.
 - Public page and controls work without authentication, mobile-first, in both themes/locales.
-

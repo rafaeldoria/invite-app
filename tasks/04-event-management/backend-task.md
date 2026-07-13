@@ -19,7 +19,7 @@ Implement the event persistence, authorization, validation, CRUD routes, and rel
 5. Create separate Store/Update Form Requests with localized rules:
    - Parse local date/time with the submitted IANA timezone.
    - Reject invalid timezone, impossible date, unsupported image MIME/type, and oversized images.
-   - Decide whether past dates are allowed consistently. For MVP creation, reject clearly past starts; permit editing an event that has since passed without forcing a date change.
+   - Decide whether past dates are allowed consistently. For event creation, reject clearly past starts; permit editing an event that has since passed without forcing a date change.
 6. Implement thin resource controllers and named Inertia routes for index/create/store/show/edit/update/destroy.
 7. Upload images through Laravel filesystem using generated object names. Store key, disk, MIME, size, and optional dimensions; never trust original filename as a path.
 8. Replacement order: validate/upload new object, persist new reference transactionally where possible, then delete old object after commit. On persistence failure, remove the newly uploaded orphan. Log cleanup failure for retry/operations.
@@ -45,4 +45,3 @@ Implement the event persistence, authorization, validation, CRUD routes, and rel
 - S3 fake: upload, invalid MIME/size, replace, remove, delete, database failure cleanup, storage deletion failure logging.
 - Query count check on index/show if relationships are introduced.
 - Run migrations/tests against PostgreSQL before handoff.
-

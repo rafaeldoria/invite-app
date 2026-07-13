@@ -16,7 +16,7 @@ Implement secure, idempotent-enough RSVP creation and updates for individual and
    - Create response from general event link.
    - Submit/update response through individual invitation token.
    - Update a general-link response through a signed/opaque management capability.
-2. Decide the general-response capability mechanism before coding. Preferred MVP: create a random response token stored hashed on the guest record (or a separate minimal capability record), return raw token only in the management URL, and rotate only for an explicit reason. Laravel signed URLs are acceptable if expiry/update UX is explicitly handled.
+2. Decide the general-response capability mechanism before coding. Preferred product approach: create a random response token stored hashed on the guest record (or a separate minimal capability record), return raw token only in the management URL, and rotate only for an explicit reason. Laravel signed URLs are acceptable if expiry/update UX is explicitly handled.
 3. Create a Form Request with overview rules and localized messages. Normalize trim/Unicode safely; do not collapse distinct guests by normalized name.
 4. Enforce invariants in one domain operation:
    - Only `confirmed`/`declined` accepted publicly.
@@ -46,4 +46,3 @@ Implement secure, idempotent-enough RSVP creation and updates for individual and
 - Concurrent/double submit simulation around uniqueness/transaction logic.
 - Rate-limit behavior and localized errors.
 - Public serializer/cache privacy assertions.
-

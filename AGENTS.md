@@ -10,7 +10,7 @@ Its primary goals are to let organizers:
 - Receive attendance responses (RSVPs).
 - Quickly understand which guests are confirmed, declined, or pending.
 
-The current priority is to validate the product quickly with a lean MVP. Product decisions should favor learning and delivery over speculative flexibility.
+The current priority is to operate the product reliably in production while continuing to improve the invitation and RSVP workflow. Product decisions should favor measured value, maintainability, and delivery over speculative flexibility.
 
 ## Language
 
@@ -53,7 +53,7 @@ Docker, Nginx, and Cloudflare configuration is not currently present in this dir
 
 # Current Architecture
 
-The application is at an early scaffold stage:
+The application is a production web platform:
 
 - Laravel owns routing, HTTP concerns, validation, authorization, persistence, and business workflows.
 - Inertia connects Laravel routes and controllers to React pages without a separate REST API unless one is genuinely required.
@@ -83,11 +83,11 @@ Avoid:
 - Features that have not been validated.
 - New dependencies when the framework or existing stack already solves the problem well.
 
-Always implement the simplest solution that correctly solves the current problem. Build for the known MVP, while keeping code clean enough to change when real requirements emerge.
+Always implement the simplest solution that correctly solves the current problem. Build for the current production product, while keeping code clean enough to change when real requirements emerge.
 
 # Laravel Practices
 
-Before developing or changing any backend code, read `backend_best_practices.md` and apply it together with this `AGENTS.md`. The backend guide is the project playbook for Actions, controller boundaries, Form Requests, policies, persistence side effects, and keeping MVP code simple.
+Before developing or changing any backend code, read `backend_best_practices.md` and apply it together with this `AGENTS.md`. The backend guide is the project playbook for Actions, controller boundaries, Form Requests, policies, persistence side effects, and keeping production code simple.
 
 Every implementation task must start by reading this `AGENTS.md` from the repository so current project rules are loaded before inspecting or editing code.
 
@@ -112,7 +112,7 @@ Every implementation task must start by reading this `AGENTS.md` from the reposi
 - Define relationship return types and useful attribute casts.
 - Prefer expressive Eloquent queries over clever or deeply nested query code.
 - Prevent N+1 queries with intentional eager loading (`with`, `load`, or `loadMissing`).
-- Select only the data needed when queries or payloads become large, but do not prematurely micro-optimize small MVP queries.
+- Select only the data needed when queries or payloads become large, but do not prematurely micro-optimize small production queries.
 - Use pagination for guest lists and other collections that can grow.
 - Do not hide expensive database access inside accessors or loops.
 
@@ -191,9 +191,9 @@ Prioritize user experience over elaborate visual effects.
 - Minimize form friction, especially in the public RSVP flow.
 - Respect reduced-motion preferences and avoid animation that delays interaction.
 
-# Initial MVP
+# Current Production Scope
 
-Implement only the minimum required for the following scope.
+Keep the production product focused on the following core scope unless product requirements explicitly change.
 
 ## Event
 
@@ -224,7 +224,7 @@ Implement only the minimum required for the following scope.
 
 Keep status definitions centralized and explicit. Dashboard totals must be derived consistently from the same RSVP states used by guest management.
 
-# Out of Scope for the Initial Release
+# Out of Scope Unless Explicitly Requested
 
 Do not implement these features unless the product scope is explicitly changed:
 
@@ -284,11 +284,11 @@ When finishing a task, briefly report:
 - Treat the repository as the source of truth when documentation and implementation differ.
 - Ask for clarification only when a missing product decision materially changes the solution; otherwise make the simplest reasonable assumption and state it at handoff.
 - Do not invent existing infrastructure, conventions, endpoints, models, or completed features.
-- Do not expand the MVP scope as part of an unrelated task.
+- Do not expand the production scope as part of an unrelated task.
 - Use English for every new or modified code artifact.
 - Keep public invitation and RSVP flows privacy-conscious and resistant to token guessing.
 - Explain decisions concisely when handing work back.
 
 # Final Objective
 
-Build a simple, modern, and scalable invitation and event management platform, beginning with an extremely lean MVP centered on RSVP collection and guest management. Scalability here means a clear design that can evolve with validated demand, not complexity added in advance.
+Build a simple, modern, and scalable invitation and event management platform centered on RSVP collection and guest management. Scalability here means a clear design that can evolve with real production demand, not complexity added in advance.

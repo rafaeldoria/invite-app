@@ -20,7 +20,7 @@ Clear, calm, and trustworthy. The product should feel modern and focused while r
 
 - Feature-heavy event platforms that obscure core tasks behind payments, gift lists, QR codes, check-in, integrations, or configuration.
 - Generic marketing pages that prioritize decorative effects over event and RSVP workflows.
-- Overbuilt design systems, novel controls, and speculative abstractions that slow MVP learning.
+- Overbuilt design systems, novel controls, and speculative abstractions that slow production delivery.
 - Interfaces that expose private organizer or guest data, rely on color alone, or make mobile RSVP completion difficult.
 
 ## Design Principles
@@ -29,7 +29,7 @@ Clear, calm, and trustworthy. The product should feel modern and focused while r
 - Make public RSVP paths faster and simpler than organizer workflows.
 - Use familiar interaction patterns and consistent domain language.
 - Communicate status, validation, loading, empty, and error states explicitly.
-- Build only what the current MVP needs, with clear seams for validated change.
+- Build only what the current production product needs, with clear seams for measured change.
 
 ## Accessibility & Inclusion
 

@@ -2,9 +2,9 @@
 
 ## Summary
 
-This review covered the Laravel/Inertia/React invitation MVP with focus on practical web application risks: authentication, authorization, public invitation capabilities, RSVP flows, input validation, file uploads, CSRF, XSS, SQL injection, mass assignment, logging, storage, session/cookie settings, rate limiting, and public data exposure.
+This review covered the Laravel/Inertia/React invitation platform with focus on practical web application risks: authentication, authorization, public invitation capabilities, RSVP flows, input validation, file uploads, CSRF, XSS, SQL injection, mass assignment, logging, storage, session/cookie settings, rate limiting, and public data exposure.
 
-Overall, the application has a solid MVP security baseline:
+Overall, the application has a solid production security baseline:
 
 - Organizer routes are protected with `auth` and `verified` middleware.
 - Event ownership is enforced through `EventPolicy` and Form Request authorization.

@@ -2,7 +2,7 @@
 
 ## Objective
 
-Implement the layouts, components, feedback patterns, theme system, and conventions consumed by every MVP frontend feature.
+Implement the layouts, components, feedback patterns, theme system, and conventions consumed by every production frontend feature.
 
 ## Prerequisites
 
@@ -48,4 +48,3 @@ Implement the layouts, components, feedback patterns, theme system, and conventi
 - Manually test keyboard navigation, dialog focus, screen-reader labels, reduced motion, and theme persistence.
 - Check mobile menu and layout at the three target widths.
 - Run `npm run build`; run any added lint/typecheck/test scripts and report them.
-

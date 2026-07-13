@@ -1,12 +1,12 @@
 # Backend Best Practices
 
-This guide defines how backend work should be shaped in this Laravel application. Keep it practical: use the smallest structure that makes the current MVP feature clear, testable, and safe to change.
+This guide defines how backend work should be shaped in this Laravel application. Keep it practical: use the smallest structure that makes the current production feature clear, testable, and safe to change.
 
 ## Core Principles
 
 - Start from `AGENTS.md`, the relevant task under `tasks/`, and the current code before designing a change.
 - Prefer Laravel conventions over custom architecture: routing, controllers, Form Requests, policies, Eloquent, filesystem, queues, events, and tests should do the heavy lifting.
-- Keep the MVP lean. Add a class only when it removes real controller/model complexity, isolates a workflow, or is reused by more than one entry point.
+- Keep the product lean. Add a class only when it removes real controller/model complexity, isolates a workflow, or is reused by more than one entry point.
 - Use English for class names, method names, comments, test names, logs, and documentation added to the repository.
 - Avoid speculative flexibility for out-of-scope features.
 
@@ -43,7 +43,7 @@ Controllers should coordinate HTTP concerns:
 - Attach flash messages and validation-friendly redirects.
 - Avoid complex queries, file lifecycle logic, and manual payload assembly when those concerns are large enough to name.
 
-Thin controllers are the goal, not empty controllers. A direct Eloquent call is acceptable when it is the clearest MVP solution.
+Thin controllers are the goal, not empty controllers. A direct Eloquent call is acceptable when it is the clearest production solution.
 
 ## Form Requests
 
@@ -102,7 +102,7 @@ Before adding a backend abstraction, confirm:
 - The current controller/model/request would otherwise hold more than one clear responsibility.
 - The new class has a specific domain name, not a generic framework name.
 - The new class reduces duplication or isolates a workflow that needs tests.
-- The behavior is in the MVP scope or explicitly requested by the task.
+- The behavior is in the current production scope or explicitly requested by the task.
 - Existing Laravel features cannot express the behavior more simply.
 
 Before finishing backend work, confirm:

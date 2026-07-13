@@ -30,4 +30,4 @@ Local and automated tests use Laravel's safe `log` or fake mail transports. Prod
 
 ## Abuse Response
 
-Registration, login, reset requests, and verification resend actions are throttled. CAPTCHA is intentionally not part of the MVP. Add it only if measured abuse continues after tuning throttles and operational monitoring.
+Registration, login, reset requests, and verification resend actions are throttled. CAPTCHA is intentionally not part of the current product experience. Add it only if measured abuse continues after tuning throttles and operational monitoring.

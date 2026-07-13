@@ -8,6 +8,24 @@ export function formatTime(value: Date | string | number, locale: Locale, timeZo
     return new Intl.DateTimeFormat(locale, { timeStyle: 'short', ...options, timeZone }).format(new Date(value));
 }
 
+export function formatTimeZoneName(value: Date | string | number, locale: Locale, timeZone: string): string {
+    const date = new Date(value);
+
+    try {
+        const name = new Intl.DateTimeFormat(locale, { timeZone, timeZoneName: 'longGeneric' })
+            .formatToParts(date)
+            .find((part) => part.type === 'timeZoneName')?.value;
+
+        if (name && name !== timeZone) {
+            return name;
+        }
+    } catch {
+        return readableTimeZoneFallback(timeZone);
+    }
+
+    return readableTimeZoneFallback(timeZone);
+}
+
 export function formatFormDate(value: string, locale: Locale): string {
     const date = parseIsoDate(value);
 
@@ -141,6 +159,10 @@ function parseIsoDate(value: string): { year: string; month: string; day: string
         month: match[2],
         day: match[3],
     };
+}
+
+function readableTimeZoneFallback(timeZone: string): string {
+    return (timeZone.split('/').pop() ?? timeZone).replace(/_/g, ' ');
 }
 
 function isValidDate(year: number, month: number, day: number): boolean {

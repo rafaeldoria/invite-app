@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide secure session-based organizer authentication for the MVP: registration, login, logout, password reset, and email verification, with proportionate protection against common abuse.
+Provide secure session-based organizer authentication for the product: registration, login, logout, password reset, and email verification, with proportionate protection against common abuse.
 
 ## User Flows
 
@@ -40,4 +40,3 @@ Backend and frontend are parallelizable after route names, page props, form fiel
 - Sessions rotate on login and are invalidated on logout; CSRF protection remains enabled.
 - Password reset and verification use expiring framework mechanisms and do not leak account existence.
 - Production cookie and security-header expectations are documented and testable.
-

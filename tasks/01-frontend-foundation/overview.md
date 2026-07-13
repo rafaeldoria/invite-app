@@ -2,14 +2,14 @@
 
 ## Goal
 
-Create the smallest reusable UI foundation required by the MVP: public and authenticated shells, navigation, accessible interaction primitives, consistent forms and feedback, responsive behavior, and light/dark/system themes.
+Create the smallest reusable UI foundation required by the product: public and authenticated shells, navigation, accessible interaction primitives, consistent forms and feedback, responsive behavior, and light/dark/system themes.
 
 ## Scope
 
 - App shell and document-level theme initialization.
 - Authenticated layout with compact mobile navigation and clear event/dashboard destinations.
 - Public layout optimized for event viewing and RSVP without organizer navigation.
-- Shared primitives actually needed by MVP screens: button, link, text field, textarea, select, checkbox where needed, field error, card, status badge, alert, toast/flash notice, modal/dialog, spinner/skeleton, empty state, and page-level error state.
+- Shared primitives actually needed by production screens: button, link, text field, textarea, select, checkbox where needed, field error, card, status badge, alert, toast/flash notice, modal/dialog, spinner/skeleton, empty state, and page-level error state.
 - Consistent form spacing, required indicators, help text, disabled/submitting behavior, and server validation errors.
 - `system`, `light`, and `dark` theme modes with an accessible switcher and no first-paint flash where practical.
 - A conventional `resources/js` structure for pages, layouts, components, hooks, types, and utilities.
@@ -59,4 +59,3 @@ The backend and frontend tasks can run in parallel after agreeing on shared Iner
 - Flash, loading, modal, empty, and page error patterns are documented and demonstrable without feature logic.
 - No user-facing string is hardcoded outside the temporary translation interface agreed with task 02.
 - TypeScript strict mode remains clean and `npm run build` succeeds.
-
