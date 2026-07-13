@@ -56,6 +56,12 @@ class AppServiceProvider extends ServiceProvider
                 ->response($tooManyAttempts);
         });
 
+        RateLimiter::for('support-contact', function (Request $request) use ($tooManyAttempts) {
+            return Limit::perMinute(5)
+                ->by($request->ip())
+                ->response($tooManyAttempts);
+        });
+
         RateLimiter::for('public-rsvp', function (Request $request) use ($tooManyAttempts) {
             $event = $request->route('event');
             $eventKey = $event instanceof Event ? $event->public_id : (string) ($event ?? 'unknown-event');

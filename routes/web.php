@@ -18,6 +18,7 @@ use App\Http\Controllers\PublicInvitationController;
 use App\Http\Controllers\PublicInvitationRsvpController;
 use App\Http\Controllers\PublicRsvpController;
 use App\Http\Controllers\PublicRsvpManagementController;
+use App\Http\Controllers\SupportContactController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -28,6 +29,12 @@ Route::get('/', function () {
 Route::patch('/locale', [LocaleController::class, 'update'])
     ->middleware('throttle:locale-preference')
     ->name('locale.update');
+
+Route::get('/support', [SupportContactController::class, 'create'])
+    ->name('support.create');
+Route::post('/support', [SupportContactController::class, 'store'])
+    ->middleware('throttle:support-contact')
+    ->name('support.store');
 
 Route::get('/e/{event:public_id}', PublicEventController::class)
     ->name('public.events.show');
