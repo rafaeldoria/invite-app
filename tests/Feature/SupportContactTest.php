@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -15,9 +16,11 @@ class SupportContactTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const SUPPORT_CLIENT_IP = '203.0.113.24';
+
     protected function tearDown(): void
     {
-        RateLimiter::clear('support-contact');
+        RateLimiter::clear($this->supportThrottleKey());
 
         parent::tearDown();
     }
@@ -52,7 +55,7 @@ class SupportContactTest extends TestCase
         config()->set('support.email', 'support@example.com');
         Mail::fake();
 
-        $this->post(route('support.store'), $this->validPayload())
+        $this->postSupportContact($this->validPayload())
             ->assertRedirect(route('home'))
             ->assertSessionHas('success', __('support.messages.sent'));
 
@@ -71,7 +74,7 @@ class SupportContactTest extends TestCase
         Mail::fake();
 
         $this->actingAs(User::factory()->create())
-            ->post(route('support.store'), $this->validPayload())
+            ->postSupportContact($this->validPayload())
             ->assertRedirect(route('events.index'))
             ->assertSessionHas('success', __('support.messages.sent'));
 
@@ -80,14 +83,14 @@ class SupportContactTest extends TestCase
 
     public function test_support_contact_validation_rejects_invalid_payloads(): void
     {
-        $this->post(route('support.store'), [
+        $this->postSupportContact([
             'name' => '',
             'contact' => 'not-a-contact',
             'subject' => '',
             'message' => '',
         ])->assertSessionHasErrors(['name', 'contact', 'subject', 'message']);
 
-        $this->post(route('support.store'), [
+        $this->postSupportContact([
             'name' => str_repeat('a', 121),
             'contact' => str_repeat('a', 256),
             'subject' => str_repeat('a', 161),
@@ -100,7 +103,7 @@ class SupportContactTest extends TestCase
         config()->set('support.email', 'support@example.com');
         Mail::fake();
 
-        $this->post(route('support.store'), $this->validPayload([
+        $this->postSupportContact($this->validPayload([
             'subject' => "  Help\r\nwith invitation\tsetup  ",
         ]))->assertRedirect(route('home'));
 
@@ -116,7 +119,7 @@ class SupportContactTest extends TestCase
         config()->set('support.email', 'support@example.com');
         Mail::fake();
 
-        $this->post(route('support.store'), $this->validPayload([
+        $this->postSupportContact($this->validPayload([
             'message' => '<script>alert("x")</script>',
         ]))->assertRedirect(route('home'));
 
@@ -138,12 +141,12 @@ class SupportContactTest extends TestCase
         Mail::fake();
 
         for ($attempt = 1; $attempt <= 5; $attempt++) {
-            $this->post(route('support.store'), $this->validPayload([
+            $this->postSupportContact($this->validPayload([
                 'subject' => 'Support request '.$attempt,
             ]))->assertRedirect(route('home'));
         }
 
-        $this->post(route('support.store'), $this->validPayload([
+        $this->postSupportContact($this->validPayload([
             'subject' => 'Support request 6',
         ]))->assertTooManyRequests();
     }
@@ -153,7 +156,7 @@ class SupportContactTest extends TestCase
         config()->set('support.email', null);
         Mail::fake();
 
-        $this->post(route('support.store'), $this->validPayload())
+        $this->postSupportContact($this->validPayload())
             ->assertRedirect(route('support.create'))
             ->assertSessionHas('error', __('support.messages.send_failed'));
 
@@ -176,5 +179,20 @@ class SupportContactTest extends TestCase
             'message' => 'I need help reviewing the invitation flow.',
             ...$overrides,
         ];
+    }
+
+    /**
+     * @param  array<string, string>  $payload
+     */
+    private function postSupportContact(array $payload): TestResponse
+    {
+        return $this->withServerVariables([
+            'REMOTE_ADDR' => self::SUPPORT_CLIENT_IP,
+        ])->post(route('support.store'), $payload);
+    }
+
+    private function supportThrottleKey(): string
+    {
+        return md5('support-contact'.self::SUPPORT_CLIENT_IP);
     }
 }

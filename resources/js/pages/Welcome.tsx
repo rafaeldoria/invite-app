@@ -98,10 +98,11 @@ export default function Welcome() {
 
         const firstCard = container.querySelector<HTMLElement>('[data-testimonial-card]');
         const distance = firstCard ? firstCard.offsetWidth + 16 : container.clientWidth;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         container.scrollBy({
             left: direction === 'next' ? distance : -distance,
-            behavior: 'smooth',
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
         });
     }
 
@@ -200,10 +201,11 @@ export default function Welcome() {
                             </button>
                         </div>
                     </div>
-                    <div ref={testimonialsRef} className="mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 scroll-smooth" aria-live="polite">
+                    <div ref={testimonialsRef} className="scrollbar-none mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" aria-live="polite">
                         {testimonials.map((testimonial) => (
                             <figure key={testimonial.name} data-testimonial-card className="flex min-h-56 shrink-0 basis-[min(21rem,85vw)] snap-start flex-col rounded-xl bg-surface p-5 shadow-sm md:basis-[calc((100%_-_1rem)/2)] lg:basis-[calc((100%_-_2rem)/3)]">
-                                <div className="mb-4 flex items-center gap-1 text-warning-ink" aria-label={t('welcome.testimonialRatingLabel')}>
+                                <div className="mb-4 flex items-center gap-1 text-warning-ink">
+                                    <span className="sr-only">{t('welcome.testimonialRatingLabel')}</span>
                                     <span aria-hidden="true" className="text-base leading-none">★★★★★</span>
                                 </div>
                                 <blockquote className="text-sm leading-6 text-ink">
