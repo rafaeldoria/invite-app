@@ -55,7 +55,7 @@ final class SubmitPublicRsvp
             }
 
             $guest->update([
-                ...$this->responseAttributes($data),
+                ...$this->responseAttributes($data, $guest),
             ]);
 
             $this->syncCompanions($guest, $data);
@@ -72,7 +72,7 @@ final class SubmitPublicRsvp
         return DB::transaction(function () use ($event, $responseToken, $data): Guest {
             $guest = $this->guestForManagementToken($event, $responseToken, true);
 
-            $guest->update($this->responseAttributes($data));
+            $guest->update($this->responseAttributes($data, $guest));
             $this->syncCompanions($guest, $data);
 
             return $guest;
@@ -87,7 +87,7 @@ final class SubmitPublicRsvp
         return DB::transaction(function () use ($event, $invitationToken, $data): Guest {
             $guest = $this->guestForInvitationToken($event, $invitationToken, true);
 
-            $guest->update($this->responseAttributes($data));
+            $guest->update($this->responseAttributes($data, $guest));
             $this->syncCompanions($guest, $data);
 
             return $guest;
@@ -134,17 +134,28 @@ final class SubmitPublicRsvp
 
     /**
      * @param  array{attendance: string, adult_companions: int, child_companions: int}  $data
-     * @return array{status: GuestStatus, adult_companions: int, child_companions: int, responded_at: Carbon}
+     * @return array{status: GuestStatus, adult_companions: int, child_companions: int, responded_at: Carbon, confirmed_at: Carbon|null}
      */
-    private function responseAttributes(array $data): array
+    private function responseAttributes(array $data, ?Guest $guest = null): array
     {
         $status = GuestStatus::from($data['attendance']);
+        $respondedAt = now();
+        $confirmedAt = null;
+
+        if ($status === GuestStatus::Confirmed) {
+            $confirmedAt = $respondedAt;
+
+            if ($guest?->status === GuestStatus::Confirmed) {
+                $confirmedAt = $guest->confirmed_at ?? $guest->responded_at ?? $confirmedAt;
+            }
+        }
 
         return [
             'status' => $status,
             'adult_companions' => $status->allowsCompanions() ? $data['adult_companions'] : 0,
             'child_companions' => $status->allowsCompanions() ? $data['child_companions'] : 0,
-            'responded_at' => now(),
+            'responded_at' => $respondedAt,
+            'confirmed_at' => $confirmedAt,
         ];
     }
 

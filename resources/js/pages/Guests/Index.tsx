@@ -241,9 +241,9 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                                                 <div className="flex flex-wrap items-center gap-3">
                                                     <h3 className="break-words text-base font-semibold text-ink">{guest.name}</h3>
                                                     <StatusBadge status={guest.status}>{t(`guests.status.${guest.status}` as TranslationKey)}</StatusBadge>
-                                                    {guest.status === 'confirmed' && guest.responded_at ? (
-                                                        <time dateTime={guest.responded_at} className="inline-flex items-center rounded-full bg-success-soft px-3 py-1 text-sm font-semibold text-success-ink">
-                                                            {formatShortDate(guest.responded_at, locale, event.timezone)}
+                                                    {guest.status === 'confirmed' && guest.confirmed_at ? (
+                                                        <time dateTime={guest.confirmed_at} className="inline-flex items-center rounded-full bg-success-soft px-3 py-1 text-sm font-semibold text-success-ink">
+                                                            {formatShortDate(guest.confirmed_at, locale, event.timezone)}
                                                         </time>
                                                     ) : null}
                                                 </div>

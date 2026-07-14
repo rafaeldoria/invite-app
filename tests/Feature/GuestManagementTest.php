@@ -66,7 +66,7 @@ class GuestManagementTest extends TestCase
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
                 ->where('guests.data.0.status', 'pending')
-                ->where('guests.data.0.responded_at', null)
+                ->where('guests.data.0.confirmed_at', null)
                 ->where('guests.data.0.companion_count', 0)
                 ->has('guests.data.0.companions', 0)
                 ->missing('guests.data.0.id')
@@ -207,6 +207,7 @@ class GuestManagementTest extends TestCase
         $event = Event::factory()->for($user, 'owner')->create();
         $guest = Guest::factory()->for($event)->confirmed(1)->create([
             'responded_at' => $respondedAt,
+            'confirmed_at' => $respondedAt,
         ]);
 
         $this->actingAs($user)
@@ -224,6 +225,7 @@ class GuestManagementTest extends TestCase
         $this->assertSame(2, $guest->adult_companions);
         $this->assertSame(1, $guest->child_companions);
         $this->assertTrue($respondedAt->equalTo($guest->responded_at));
+        $this->assertTrue($respondedAt->equalTo($guest->confirmed_at));
     }
 
     public function test_declined_guest_confirmation_uses_new_confirmation_timestamp(): void
@@ -252,6 +254,7 @@ class GuestManagementTest extends TestCase
 
         $this->assertSame(GuestStatus::Confirmed, $guest->status);
         $this->assertTrue($confirmedAt->equalTo($guest->responded_at));
+        $this->assertTrue($confirmedAt->equalTo($guest->confirmed_at));
     }
 
     public function test_guest_count_edits_clear_stale_named_companions(): void
@@ -316,7 +319,7 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('filters.view', null)
-                ->where('guests.data.0.responded_at', $guest->responded_at?->toJSON())
+                ->where('guests.data.0.confirmed_at', $guest->confirmed_at?->toJSON())
                 ->has('guests.data.0.companions', 2)
                 ->where('guests.data.0.companions.0.name', 'Adult Companion')
                 ->where('guests.data.0.companions.0.is_child', false)

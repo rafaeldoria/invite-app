@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
     'child_companions',
     'response_token_hash',
     'responded_at',
+    'confirmed_at',
 ])]
 #[Hidden([
     'invitation_token',
@@ -69,6 +70,7 @@ class Guest extends Model
             'adult_companions' => 'integer',
             'child_companions' => 'integer',
             'responded_at' => 'datetime',
+            'confirmed_at' => 'datetime',
         ];
     }
 }
