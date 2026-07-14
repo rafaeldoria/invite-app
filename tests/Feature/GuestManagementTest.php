@@ -61,10 +61,12 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Guests/Index')
                 ->where('event.name', $event->name)
+                ->where('event.timezone', $event->timezone)
                 ->has('guests.data', 1)
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
                 ->where('guests.data.0.status', 'pending')
+                ->where('guests.data.0.responded_at', null)
                 ->where('guests.data.0.companion_count', 0)
                 ->has('guests.data.0.companions', 0)
                 ->missing('guests.data.0.id')
@@ -286,6 +288,7 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('filters.view', null)
+                ->where('guests.data.0.responded_at', $guest->responded_at?->toJSON())
                 ->has('guests.data.0.companions', 2)
                 ->where('guests.data.0.companions.0.name', 'Adult Companion')
                 ->where('guests.data.0.companions.0.is_child', false)

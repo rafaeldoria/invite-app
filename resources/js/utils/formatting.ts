@@ -8,6 +8,15 @@ export function formatTime(value: Date | string | number, locale: Locale, timeZo
     return new Intl.DateTimeFormat(locale, { timeStyle: 'short', ...options, timeZone }).format(new Date(value));
 }
 
+export function formatShortDate(value: Date | string | number, locale: Locale, timeZone: string): string {
+    return new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        timeZone,
+    }).format(new Date(value));
+}
+
 export function formatTimeZoneName(value: Date | string | number, locale: Locale, timeZone: string): string {
     const date = new Date(value);
 

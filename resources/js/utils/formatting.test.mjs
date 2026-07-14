@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatDate, formatFormDate, formatFormTime, formatNumber, formatTime, formatTimeZoneName, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
+import { formatDate, formatFormDate, formatFormTime, formatNumber, formatShortDate, formatTime, formatTimeZoneName, maskFormDateInput, maskFormTimeInput, parseFormDateInput, parseFormTimeInput, selectPlural } from './formatting.ts';
 
 const instantNearDayBoundary = '2026-01-01T02:30:00Z';
 
 test('date and time formatting uses the explicit event timezone', () => {
     assert.match(formatDate(instantNearDayBoundary, 'pt-BR', 'America/Sao_Paulo'), /31 de dezembro de 2025/);
     assert.match(formatDate(instantNearDayBoundary, 'en-US', 'America/Sao_Paulo'), /December 31, 2025/);
+    assert.equal(formatShortDate('2026-07-16T12:00:00Z', 'pt-BR', 'America/Sao_Paulo'), '16/07/26');
+    assert.equal(formatShortDate('2026-07-16T12:00:00Z', 'en-US', 'America/Sao_Paulo'), '07/16/26');
     assert.equal(formatTime(instantNearDayBoundary, 'pt-BR', 'America/Sao_Paulo'), '23:30');
     assert.equal(formatTime(instantNearDayBoundary, 'en-US', 'America/Sao_Paulo'), '11:30 PM');
 });
