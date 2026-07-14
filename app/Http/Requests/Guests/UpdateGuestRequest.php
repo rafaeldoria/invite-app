@@ -78,7 +78,9 @@ class UpdateGuestRequest extends FormRequest
         if ($status !== GuestStatus::Pending) {
             $respondedAt = now();
 
-            if ($guest instanceof Guest && $guest->status !== GuestStatus::Pending && $guest->responded_at !== null) {
+            if ($guest instanceof Guest
+                && $guest->status === $status
+                && $guest->responded_at !== null) {
                 $respondedAt = $guest->responded_at;
             }
         }

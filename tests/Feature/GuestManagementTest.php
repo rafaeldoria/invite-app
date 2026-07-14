@@ -226,6 +226,34 @@ class GuestManagementTest extends TestCase
         $this->assertTrue($respondedAt->equalTo($guest->responded_at));
     }
 
+    public function test_declined_guest_confirmation_uses_new_confirmation_timestamp(): void
+    {
+        $declinedAt = now()->subDays(2)->startOfSecond();
+        $confirmedAt = now()->startOfSecond();
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->declined()->create([
+            'responded_at' => $declinedAt,
+        ]);
+
+        $this->travelTo($confirmedAt);
+
+        $this->actingAs($user)
+            ->patch(route('events.guests.update', [$event, $guest]), [
+                'name' => 'Confirmed Guest',
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 1,
+                'child_companions' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->travelBack();
+        $guest->refresh();
+
+        $this->assertSame(GuestStatus::Confirmed, $guest->status);
+        $this->assertTrue($confirmedAt->equalTo($guest->responded_at));
+    }
+
     public function test_guest_count_edits_clear_stale_named_companions(): void
     {
         $user = User::factory()->create();
