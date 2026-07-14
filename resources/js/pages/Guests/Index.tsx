@@ -13,6 +13,7 @@ import { AuthenticatedLayout } from '../../layouts/AuthenticatedLayout';
 import { useLocale } from '../../hooks/use-locale';
 import type { FullGuestListItem, GuestFormData, GuestListItem, GuestStatus, GuestStatusOption, PaginatedGuests } from '../../types/guests';
 import type { TranslationKey } from '../../locales';
+import { formatShortDate } from '../../utils/formatting';
 
 type Feedback = { tone: 'success' | 'error'; message: string } | null;
 type FullGuestListSort = 'guest' | 'alphabetical' | 'child';
@@ -21,6 +22,7 @@ type GuestListView = 'full';
 type Props = {
     event: {
         name: string;
+        timezone: string;
         links: {
             show: string;
             guests: string;
@@ -48,7 +50,7 @@ const defaultGuestForm: GuestFormData = {
 const fullListSortOptions: FullGuestListSort[] = ['guest', 'alphabetical', 'child'];
 
 export default function Index({ event, guests, fullGuestList, filters, statusOptions, links }: Props) {
-    const { t, tp } = useLocale();
+    const { locale, t, tp } = useLocale();
     const [createOpen, setCreateOpen] = useState(false);
     const [editingGuest, setEditingGuest] = useState<GuestListItem | null>(null);
     const [deletingGuest, setDeletingGuest] = useState<GuestListItem | null>(null);
@@ -239,6 +241,11 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                                                 <div className="flex flex-wrap items-center gap-3">
                                                     <h3 className="break-words text-base font-semibold text-ink">{guest.name}</h3>
                                                     <StatusBadge status={guest.status}>{t(`guests.status.${guest.status}` as TranslationKey)}</StatusBadge>
+                                                    {guest.status === 'confirmed' && guest.confirmed_at ? (
+                                                        <time dateTime={guest.confirmed_at} className="inline-flex items-center rounded-full bg-success-soft px-3 py-1 text-sm font-semibold text-success-ink">
+                                                            {formatShortDate(guest.confirmed_at, locale, event.timezone)}
+                                                        </time>
+                                                    ) : null}
                                                 </div>
                                                 <p className="text-sm leading-6 text-muted">{companionSummary(guest, t, tp)}</p>
                                             </div>

@@ -23,6 +23,7 @@ final class GuestPresenter
             'name' => $guest->name,
             'invitation_url' => $this->urls->invitation($event, $guest),
             'status' => $guest->status->value,
+            'confirmed_at' => $guest->confirmed_at?->toJSON(),
             'adult_companions' => $guest->adult_companions,
             'child_companions' => $guest->child_companions,
             'companion_count' => $guest->companionCount(),

@@ -74,6 +74,7 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(hash('sha256', $token), $guest->response_token_hash);
         $this->assertNotSame($token, $guest->response_token_hash);
         $this->assertNotNull($guest->responded_at);
+        $this->assertNotNull($guest->confirmed_at);
 
         $this->get(route('public.rsvp.show', [$event, $token]))
             ->assertOk()
@@ -107,6 +108,39 @@ class PublicRsvpTest extends TestCase
         $this->assertSame(0, $guest->child_companions);
         $this->assertDatabaseCount('guest_companions', 0);
         $this->assertSame('2030-01-01 12:05:00', $guest->responded_at->format('Y-m-d H:i:s'));
+        $this->assertNull($guest->confirmed_at);
+    }
+
+    public function test_confirmed_public_rsvp_edit_preserves_confirmation_timestamp(): void
+    {
+        Carbon::setTestNow('2030-01-01 12:00:00');
+        $event = Event::factory()->create();
+        $token = Str::random(64);
+
+        $this->post(route('public.rsvp.store', $event), [
+            'name' => 'Sam Guest',
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 0,
+            'child_companions' => 0,
+            'response_token' => $token,
+        ])->assertRedirect();
+
+        $guest = Guest::query()->firstOrFail();
+        $this->assertSame('2030-01-01 12:00:00', $guest->confirmed_at?->format('Y-m-d H:i:s'));
+
+        Carbon::setTestNow('2030-01-01 12:10:00');
+
+        $this->patch(route('public.rsvp.update', [$event, $token]), [
+            'attendance' => GuestStatus::Confirmed->value,
+            'adult_companions' => 1,
+            'child_companions' => 0,
+        ])->assertRedirect(route('public.rsvp.show', [$event, $token]));
+
+        $guest->refresh();
+
+        $this->assertSame(GuestStatus::Confirmed, $guest->status);
+        $this->assertSame('2030-01-01 12:10:00', $guest->responded_at?->format('Y-m-d H:i:s'));
+        $this->assertSame('2030-01-01 12:00:00', $guest->confirmed_at?->format('Y-m-d H:i:s'));
     }
 
     public function test_general_decline_and_replay_do_not_create_duplicate_guests(): void

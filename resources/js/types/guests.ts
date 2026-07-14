@@ -22,6 +22,7 @@ export type GuestListItem = {
     name: string;
     invitation_url: string;
     status: GuestStatus;
+    confirmed_at: string | null;
     adult_companions: number;
     child_companions: number;
     companion_count: number;

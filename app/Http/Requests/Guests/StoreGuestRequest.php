@@ -68,13 +68,15 @@ class StoreGuestRequest extends FormRequest
     {
         $validated = $this->validated();
         $status = GuestStatus::from($validated['status']);
+        $respondedAt = $status === GuestStatus::Pending ? null : now();
 
         return [
             'name' => $validated['name'],
             'status' => $status,
             'adult_companions' => $status->allowsCompanions() ? (int) $validated['adult_companions'] : 0,
             'child_companions' => $status->allowsCompanions() ? (int) $validated['child_companions'] : 0,
-            'responded_at' => $status === GuestStatus::Pending ? null : now(),
+            'responded_at' => $respondedAt,
+            'confirmed_at' => $status === GuestStatus::Confirmed ? $respondedAt : null,
         ];
     }
 

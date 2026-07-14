@@ -56,6 +56,7 @@ class GuestController extends Controller
         return Inertia::render('Guests/Index', [
             'event' => [
                 'name' => $event->name,
+                'timezone' => $event->timezone,
                 'links' => [
                     'show' => route('events.show', $event),
                     'guests' => route('events.guests.index', $event),

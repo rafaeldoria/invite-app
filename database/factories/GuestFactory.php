@@ -24,6 +24,7 @@ class GuestFactory extends Factory
             'adult_companions' => 0,
             'child_companions' => 0,
             'responded_at' => null,
+            'confirmed_at' => null,
         ];
     }
 
@@ -34,6 +35,7 @@ class GuestFactory extends Factory
             'adult_companions' => 0,
             'child_companions' => 0,
             'responded_at' => null,
+            'confirmed_at' => null,
         ]);
     }
 
@@ -44,6 +46,7 @@ class GuestFactory extends Factory
             'adult_companions' => $adults,
             'child_companions' => $children,
             'responded_at' => now(),
+            'confirmed_at' => now(),
         ]);
     }
 
@@ -54,6 +57,7 @@ class GuestFactory extends Factory
             'adult_companions' => 0,
             'child_companions' => 0,
             'responded_at' => now(),
+            'confirmed_at' => null,
         ]);
     }
 

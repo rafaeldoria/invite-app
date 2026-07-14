@@ -61,10 +61,12 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Guests/Index')
                 ->where('event.name', $event->name)
+                ->where('event.timezone', $event->timezone)
                 ->has('guests.data', 1)
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
                 ->where('guests.data.0.status', 'pending')
+                ->where('guests.data.0.confirmed_at', null)
                 ->where('guests.data.0.companion_count', 0)
                 ->has('guests.data.0.companions', 0)
                 ->missing('guests.data.0.id')
@@ -162,10 +164,18 @@ class GuestManagementTest extends TestCase
 
     public function test_status_count_invariants_match_rsvp_contract(): void
     {
+        $confirmedAt = now()->subDays(2)->startOfSecond();
+        $declinedAt = now()->startOfSecond();
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
         $guest = Guest::factory()->for($event)->confirmed(3, 2)->create();
-        $originalRespondedAt = $guest->responded_at;
+
+        $guest->forceFill([
+            'responded_at' => $confirmedAt,
+            'confirmed_at' => $confirmedAt,
+        ])->save();
+
+        $this->travelTo($declinedAt);
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
@@ -176,11 +186,13 @@ class GuestManagementTest extends TestCase
             ])
             ->assertRedirect();
 
+        $this->travelBack();
         $guest->refresh();
         $this->assertSame(GuestStatus::Declined, $guest->status);
         $this->assertSame(0, $guest->adult_companions);
         $this->assertSame(0, $guest->child_companions);
-        $this->assertTrue($originalRespondedAt->equalTo($guest->responded_at));
+        $this->assertTrue($declinedAt->equalTo($guest->responded_at));
+        $this->assertNull($guest->confirmed_at);
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
@@ -205,6 +217,7 @@ class GuestManagementTest extends TestCase
         $event = Event::factory()->for($user, 'owner')->create();
         $guest = Guest::factory()->for($event)->confirmed(1)->create([
             'responded_at' => $respondedAt,
+            'confirmed_at' => $respondedAt,
         ]);
 
         $this->actingAs($user)
@@ -222,6 +235,36 @@ class GuestManagementTest extends TestCase
         $this->assertSame(2, $guest->adult_companions);
         $this->assertSame(1, $guest->child_companions);
         $this->assertTrue($respondedAt->equalTo($guest->responded_at));
+        $this->assertTrue($respondedAt->equalTo($guest->confirmed_at));
+    }
+
+    public function test_declined_guest_confirmation_uses_new_confirmation_timestamp(): void
+    {
+        $declinedAt = now()->subDays(2)->startOfSecond();
+        $confirmedAt = now()->startOfSecond();
+        $user = User::factory()->create();
+        $event = Event::factory()->for($user, 'owner')->create();
+        $guest = Guest::factory()->for($event)->declined()->create([
+            'responded_at' => $declinedAt,
+        ]);
+
+        $this->travelTo($confirmedAt);
+
+        $this->actingAs($user)
+            ->patch(route('events.guests.update', [$event, $guest]), [
+                'name' => 'Confirmed Guest',
+                'status' => GuestStatus::Confirmed->value,
+                'adult_companions' => 1,
+                'child_companions' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->travelBack();
+        $guest->refresh();
+
+        $this->assertSame(GuestStatus::Confirmed, $guest->status);
+        $this->assertTrue($confirmedAt->equalTo($guest->responded_at));
+        $this->assertTrue($confirmedAt->equalTo($guest->confirmed_at));
     }
 
     public function test_guest_count_edits_clear_stale_named_companions(): void
@@ -286,6 +329,7 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('guests.data.0.name', 'Alex Guest')
                 ->where('filters.view', null)
+                ->where('guests.data.0.confirmed_at', $guest->confirmed_at?->toJSON())
                 ->has('guests.data.0.companions', 2)
                 ->where('guests.data.0.companions.0.name', 'Adult Companion')
                 ->where('guests.data.0.companions.0.is_child', false)
