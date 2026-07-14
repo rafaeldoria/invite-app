@@ -146,7 +146,7 @@ final class SubmitPublicRsvp
             $confirmedAt = $respondedAt;
 
             if ($guest?->status === GuestStatus::Confirmed) {
-                $confirmedAt = $guest->confirmed_at ?? $guest->responded_at ?? $confirmedAt;
+                $confirmedAt = $guest->confirmed_at ?? $confirmedAt;
             }
         }
 

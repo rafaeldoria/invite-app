@@ -91,7 +91,7 @@ class UpdateGuestRequest extends FormRequest
             $confirmedAt = $changedAt;
 
             if ($guest instanceof Guest && $guest->status === GuestStatus::Confirmed) {
-                $confirmedAt = $guest->confirmed_at ?? $guest->responded_at ?? $confirmedAt;
+                $confirmedAt = $guest->confirmed_at ?? $confirmedAt;
             }
         }
 
