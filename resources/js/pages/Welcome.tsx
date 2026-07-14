@@ -1,4 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
+import { useRef } from 'react';
 import { ButtonLink } from '../components/ui/Button';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { useLocale } from '../hooks/use-locale';
@@ -26,6 +27,7 @@ type Testimonial = {
 export default function Welcome() {
     const { auth } = usePage<SharedPageProps>().props;
     const { t } = useLocale();
+    const testimonialsRef = useRef<HTMLDivElement>(null);
     const primaryHref = auth.user ? '/events' : '/login';
     const primaryLabel = auth.user ? t('welcome.heroPrimaryAuthenticated') : t('welcome.heroPrimary');
 
@@ -82,7 +84,27 @@ export default function Welcome() {
             name: t('welcome.testimonialThreeName'),
             context: t('welcome.testimonialThreeContext'),
         },
+        {
+            quote: t('welcome.testimonialFourQuote'),
+            name: t('welcome.testimonialFourName'),
+            context: t('welcome.testimonialFourContext'),
+        },
     ];
+
+    function scrollTestimonials(direction: 'previous' | 'next') {
+        const container = testimonialsRef.current;
+
+        if (!container) return;
+
+        const firstCard = container.querySelector<HTMLElement>('[data-testimonial-card]');
+        const distance = firstCard ? firstCard.offsetWidth + 16 : container.clientWidth;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        container.scrollBy({
+            left: direction === 'next' ? distance : -distance,
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        });
+    }
 
     const headerActions = (
         <nav aria-label={t('welcome.headerActions')} className="flex items-center gap-2">
@@ -163,19 +185,33 @@ export default function Welcome() {
                 </section>
 
                 <section className="mt-12 sm:mt-16" aria-labelledby="home-testimonials-title">
-                    <div className="max-w-2xl">
-                        <h2 id="home-testimonials-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
-                            {t('welcome.testimonialsTitle')}
-                        </h2>
-                        <p className="mt-2 text-sm leading-6 text-muted">{t('welcome.testimonialsDescription')}</p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="max-w-2xl">
+                            <h2 id="home-testimonials-title" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+                                {t('welcome.testimonialsTitle')}
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-muted">{t('welcome.testimonialsDescription')}</p>
+                        </div>
+                        <div className="flex gap-2" aria-label={t('welcome.testimonialsControls')}>
+                            <button type="button" onClick={() => scrollTestimonials('previous')} className="flex size-11 items-center justify-center rounded-lg border border-border bg-surface text-xl font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" aria-label={t('welcome.testimonialsPrevious')}>
+                                <span aria-hidden="true">‹</span>
+                            </button>
+                            <button type="button" onClick={() => scrollTestimonials('next')} className="flex size-11 items-center justify-center rounded-lg border border-border bg-surface text-xl font-semibold text-ink transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" aria-label={t('welcome.testimonialsNext')}>
+                                <span aria-hidden="true">›</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="mt-7 grid gap-4 lg:grid-cols-3">
+                    <div ref={testimonialsRef} className="scrollbar-none mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3" aria-live="polite">
                         {testimonials.map((testimonial) => (
-                            <figure key={testimonial.name} className="rounded-xl bg-surface p-5 shadow-sm">
+                            <figure key={testimonial.name} data-testimonial-card className="flex min-h-56 shrink-0 basis-[min(21rem,85vw)] snap-start flex-col rounded-xl bg-surface p-5 shadow-sm md:basis-[calc((100%_-_1rem)/2)] lg:basis-[calc((100%_-_2rem)/3)]">
+                                <div className="mb-4 flex items-center gap-1 text-warning-ink">
+                                    <span className="sr-only">{t('welcome.testimonialRatingLabel')}</span>
+                                    <span aria-hidden="true" className="text-base leading-none">★★★★★</span>
+                                </div>
                                 <blockquote className="text-sm leading-6 text-ink">
                                     <p>{testimonial.quote}</p>
                                 </blockquote>
-                                <figcaption className="mt-5 border-t border-border pt-4">
+                                <figcaption className="mt-auto border-t border-border pt-4">
                                     <p className="font-semibold text-ink">{testimonial.name}</p>
                                     <p className="mt-1 text-sm text-muted">{testimonial.context}</p>
                                 </figcaption>
@@ -194,9 +230,9 @@ export default function Welcome() {
                                 {t('welcome.contactDescription')}
                             </p>
                         </div>
-                        <span className="inline-flex min-h-11 items-center rounded-lg bg-surface px-4 py-2 text-sm font-semibold text-muted">
+                        <ButtonLink href="/support" variant="secondary" className="shrink-0">
                             {t('welcome.contactStatus')}
-                        </span>
+                        </ButtonLink>
                     </div>
                 </section>
             </main>
