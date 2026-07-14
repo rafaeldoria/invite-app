@@ -164,10 +164,18 @@ class GuestManagementTest extends TestCase
 
     public function test_status_count_invariants_match_rsvp_contract(): void
     {
+        $confirmedAt = now()->subDays(2)->startOfSecond();
+        $declinedAt = now()->startOfSecond();
         $user = User::factory()->create();
         $event = Event::factory()->for($user, 'owner')->create();
         $guest = Guest::factory()->for($event)->confirmed(3, 2)->create();
-        $originalRespondedAt = $guest->responded_at;
+
+        $guest->forceFill([
+            'responded_at' => $confirmedAt,
+            'confirmed_at' => $confirmedAt,
+        ])->save();
+
+        $this->travelTo($declinedAt);
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
@@ -178,11 +186,13 @@ class GuestManagementTest extends TestCase
             ])
             ->assertRedirect();
 
+        $this->travelBack();
         $guest->refresh();
         $this->assertSame(GuestStatus::Declined, $guest->status);
         $this->assertSame(0, $guest->adult_companions);
         $this->assertSame(0, $guest->child_companions);
-        $this->assertTrue($originalRespondedAt->equalTo($guest->responded_at));
+        $this->assertTrue($declinedAt->equalTo($guest->responded_at));
+        $this->assertNull($guest->confirmed_at);
 
         $this->actingAs($user)
             ->patch(route('events.guests.update', [$event, $guest]), [
