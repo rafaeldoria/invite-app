@@ -298,6 +298,7 @@ export const enUS = {
     'guests.index.previous': 'Previous',
     'guests.index.next': 'Next',
     'guests.index.pageStatus': 'Page {page} of {pages}',
+    'guests.index.pageNumber': 'Go to page {page}',
     'guests.filter.all': 'All',
     'guests.filter.clear': 'Clear filter',
     'guests.status.pending': 'Pending',

@@ -300,6 +300,7 @@ export const ptBR = {
     'guests.index.previous': 'Anterior',
     'guests.index.next': 'Próxima',
     'guests.index.pageStatus': 'Página {page} de {pages}',
+    'guests.index.pageNumber': 'Ir para página {page}',
     'guests.filter.all': 'Todos',
     'guests.filter.clear': 'Limpar filtro',
     'guests.status.pending': 'Pendente',

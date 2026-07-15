@@ -30,6 +30,12 @@ export type GuestListItem = {
     links: GuestLinks;
 };
 
+export type PaginationLink = {
+    url: string | null;
+    label: string;
+    active: boolean;
+};
+
 export type PaginatedGuests = {
     data: GuestListItem[];
     current_page: number;
@@ -40,6 +46,20 @@ export type PaginatedGuests = {
     prev_page_url: string | null;
     to: number | null;
     total: number;
+    links: PaginationLink[];
+};
+
+export type PaginatedFullGuestList = {
+    data: FullGuestListItem[];
+    current_page: number;
+    from: number | null;
+    last_page: number;
+    next_page_url: string | null;
+    per_page: number;
+    prev_page_url: string | null;
+    to: number | null;
+    total: number;
+    links: PaginationLink[];
 };
 
 export type GuestStatusOption = {
