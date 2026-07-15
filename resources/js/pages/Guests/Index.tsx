@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert } from '../../components/feedback/Alert';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Field } from '../../components/forms/Field';
@@ -11,7 +11,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { AuthenticatedLayout } from '../../layouts/AuthenticatedLayout';
 import { useLocale } from '../../hooks/use-locale';
-import type { FullGuestListItem, GuestFormData, GuestListItem, GuestStatus, GuestStatusOption, PaginatedGuests } from '../../types/guests';
+import type { FullGuestListItem, GuestFormData, GuestListItem, GuestStatus, GuestStatusOption, PaginatedFullGuestList, PaginatedGuests } from '../../types/guests';
 import type { TranslationKey } from '../../locales';
 import { formatShortDate } from '../../utils/formatting';
 
@@ -29,10 +29,11 @@ type Props = {
         };
     };
     guests: PaginatedGuests;
-    fullGuestList: FullGuestListItem[];
+    fullGuestList: PaginatedFullGuestList;
     filters: {
         status: GuestStatus | null;
         view: GuestListView | null;
+        fullListSort: FullGuestListSort;
     };
     statusOptions: GuestStatusOption[];
     links: {
@@ -55,7 +56,6 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
     const [editingGuest, setEditingGuest] = useState<GuestListItem | null>(null);
     const [deletingGuest, setDeletingGuest] = useState<GuestListItem | null>(null);
     const [companionGuest, setCompanionGuest] = useState<GuestListItem | null>(null);
-    const [fullListSort, setFullListSort] = useState<FullGuestListSort>('guest');
     const [feedback, setFeedback] = useState<Feedback>(null);
 
     const createForm = useForm<GuestFormData>(defaultGuestForm);
@@ -75,10 +75,6 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
     const isFullList = filters.view === 'full';
     const hasGuests = guests.data.length > 0;
     const isFiltered = filters.status !== null && !isFullList;
-    const sortedFullGuestList = useMemo(
-        () => sortFullGuestList(fullGuestList, fullListSort),
-        [fullGuestList, fullListSort],
-    );
 
     function openCreateDialog() {
         createForm.clearErrors();
@@ -166,6 +162,10 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
         return `${event.links.guests}?view=full`;
     }
 
+    function fullListSortHref(sort: FullGuestListSort) {
+        return sort === 'guest' ? fullListHref() : `${fullListHref()}&sort=${sort}`;
+    }
+
     return (
         <AuthenticatedLayout>
             <Head title={t('guests.index.title')} />
@@ -199,8 +199,8 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                             <h2 id="guest-list-title" className="text-lg font-semibold text-ink">{t('guests.index.listTitle')}</h2>
                             <p className="mt-1 text-sm text-muted">
                                 {isFullList
-                                    ? fullGuestList.length > 0
-                                        ? t('guests.fullList.summary', { total: fullGuestList.length })
+                                    ? fullGuestList.total > 0
+                                        ? t('guests.index.paginationSummary', { from: fullGuestList.from ?? 0, to: fullGuestList.to ?? 0, total: fullGuestList.total })
                                         : t('guests.index.noGuestsSummary')
                                     : guests.total > 0
                                     ? t('guests.index.listSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })
@@ -218,9 +218,9 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
 
                     {isFullList ? (
                         <FullGuestListView
-                            items={sortedFullGuestList}
-                            sort={fullListSort}
-                            onSortChange={setFullListSort}
+                            fullGuestList={fullGuestList}
+                            sort={filters.fullListSort}
+                            sortHref={fullListSortHref}
                             t={t}
                         />
                     ) : !hasGuests ? (
@@ -268,30 +268,7 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
                                 ))}
                             </div>
 
-                            {guests.last_page > 1 ? (
-                                <nav className="mt-6 flex flex-col gap-3 border-t border-border pt-5 text-sm text-muted sm:flex-row sm:items-center sm:justify-between" aria-label={t('guests.index.paginationLabel')}>
-                                    <p>{t('guests.index.paginationSummary', { from: guests.from ?? 0, to: guests.to ?? 0, total: guests.total })}</p>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        {guests.prev_page_url ? (
-                                            <ButtonLink href={guests.prev_page_url} variant="secondary">{t('guests.index.previous')}</ButtonLink>
-                                        ) : (
-                                            <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
-                                                {t('guests.index.previous')}
-                                            </span>
-                                        )}
-                                        <span className="px-2 font-medium text-ink">
-                                            {t('guests.index.pageStatus', { page: guests.current_page, pages: guests.last_page })}
-                                        </span>
-                                        {guests.next_page_url ? (
-                                            <ButtonLink href={guests.next_page_url} variant="secondary">{t('guests.index.next')}</ButtonLink>
-                                        ) : (
-                                            <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
-                                                {t('guests.index.next')}
-                                            </span>
-                                        )}
-                                    </div>
-                                </nav>
-                            ) : null}
+                            <PaginationNav pagination={guests} t={t} />
                         </>
                     )}
                 </section>
@@ -399,16 +376,18 @@ export default function Index({ event, guests, fullGuestList, filters, statusOpt
 }
 
 function FullGuestListView({
-    items,
+    fullGuestList,
     sort,
-    onSortChange,
+    sortHref,
     t,
 }: {
-    items: FullGuestListItem[];
+    fullGuestList: PaginatedFullGuestList;
     sort: FullGuestListSort;
-    onSortChange: (sort: FullGuestListSort) => void;
+    sortHref: (sort: FullGuestListSort) => string;
     t: ReturnType<typeof useLocale>['t'];
 }) {
+    const items = fullGuestList.data;
+
     return (
         <div className="mt-6 space-y-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -420,15 +399,15 @@ function FullGuestListView({
                     <p className="mb-2 text-sm font-semibold text-ink">{t('dashboard.fullList.sortLabel')}</p>
                     <div className="flex flex-wrap gap-2 sm:justify-end">
                         {fullListSortOptions.map((option) => (
-                            <button
+                            <Link
                                 key={option}
-                                type="button"
-                                onClick={() => onSortChange(option)}
+                                href={sortHref(option)}
+                                preserveScroll
                                 className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${sort === option ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
-                                aria-pressed={sort === option}
+                                aria-current={sort === option ? 'page' : undefined}
                             >
                                 {t(`dashboard.fullList.sort.${option}` as TranslationKey)}
-                            </button>
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -455,7 +434,71 @@ function FullGuestListView({
                     {t('dashboard.fullList.empty')}
                 </p>
             )}
+            <PaginationNav pagination={fullGuestList} t={t} />
         </div>
+    );
+}
+
+function PaginationNav({
+    pagination,
+    t,
+}: {
+    pagination: PaginatedGuests | PaginatedFullGuestList;
+    t: ReturnType<typeof useLocale>['t'];
+}) {
+    if (pagination.last_page <= 1) {
+        return null;
+    }
+
+    const pageLinks = pagination.links.slice(1, -1);
+
+    return (
+        <nav className="mt-6 flex flex-col gap-3 border-t border-border pt-5 text-sm text-muted sm:flex-row sm:items-center sm:justify-between" aria-label={t('guests.index.paginationLabel')}>
+            <p>{t('guests.index.paginationSummary', { from: pagination.from ?? 0, to: pagination.to ?? 0, total: pagination.total })}</p>
+            <div className="flex flex-wrap items-center gap-2">
+                {pagination.prev_page_url ? (
+                    <Link href={pagination.prev_page_url} preserveScroll className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-surface-muted active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                        {t('guests.index.previous')}
+                    </Link>
+                ) : (
+                    <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
+                        {t('guests.index.previous')}
+                    </span>
+                )}
+                <span className="px-2 font-medium text-ink">
+                    {t('guests.index.pageStatus', { page: pagination.current_page, pages: pagination.last_page })}
+                </span>
+                <div className="flex flex-wrap items-center gap-1" aria-hidden={pageLinks.length === 0}>
+                    {pageLinks.map((link, index) => (
+                        link.url ? (
+                            <Link
+                                key={`${link.label}-${index}`}
+                                href={link.url}
+                                preserveScroll
+                                className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${link.active ? 'bg-accent text-accent-contrast' : 'border border-border bg-surface text-ink hover:bg-surface-muted'}`}
+                                aria-current={link.active ? 'page' : undefined}
+                                aria-label={t('guests.index.pageNumber', { page: link.label })}
+                            >
+                                {link.label}
+                            </Link>
+                        ) : (
+                            <span key={`${link.label}-${index}`} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-3 py-2 text-sm font-semibold text-muted">
+                                {link.label}
+                            </span>
+                        )
+                    ))}
+                </div>
+                {pagination.next_page_url ? (
+                    <Link href={pagination.next_page_url} preserveScroll className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink transition duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] hover:bg-surface-muted active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                        {t('guests.index.next')}
+                    </Link>
+                ) : (
+                    <span className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-muted opacity-55" aria-disabled="true">
+                        {t('guests.index.next')}
+                    </span>
+                )}
+            </div>
+        </nav>
     );
 }
 
@@ -488,36 +531,10 @@ function companionSummary(guest: GuestListItem, t: ReturnType<typeof useLocale>[
     });
 }
 
-function sortFullGuestList(items: FullGuestListItem[], sort: FullGuestListSort): FullGuestListItem[] {
-    const sorted = [...items];
-
-    return sorted.sort((a, b) => {
-        if (sort === 'child' && a.is_child !== b.is_child) {
-            return a.is_child ? -1 : 1;
-        }
-
-        if (sort === 'guest') {
-            const guestCompare = compareText(a.primary_guest, b.primary_guest);
-            if (guestCompare !== 0) return guestCompare;
-            if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
-        }
-
-        return compareText(sortableFullListName(a), sortableFullListName(b));
-    });
-}
-
 function fullListDisplayName(item: FullGuestListItem, t: ReturnType<typeof useLocale>['t']): string {
     if (item.name) {
         return item.name;
     }
 
     return item.is_child ? t('dashboard.fullList.unnamedChild') : t('dashboard.fullList.unnamedAdult');
-}
-
-function sortableFullListName(item: FullGuestListItem): string {
-    return item.name ?? `${item.primary_guest} ${item.is_child ? 'child' : 'adult'}`;
-}
-
-function compareText(a: string, b: string): number {
-    return a.localeCompare(b, undefined, { sensitivity: 'base' });
 }

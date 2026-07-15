@@ -10,12 +10,16 @@ use App\Models\Guest;
 use App\Support\Guests\GuestPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class GuestController extends Controller
 {
+    private const PER_PAGE = 10;
+
     public function __construct(
         private readonly GuestPresenter $guests,
     ) {}
@@ -26,6 +30,7 @@ class GuestController extends Controller
 
         $view = $this->viewFilter($request);
         $status = $this->statusFilter($request);
+        $fullListSort = $this->fullListSortFilter($request);
         $status = $view === 'full' ? null : $status;
 
         $guestQuery = $event->guests()
@@ -35,10 +40,10 @@ class GuestController extends Controller
             ->orderBy('id');
 
         $guests = (clone $guestQuery)
-            ->paginate(20)
+            ->paginate(self::PER_PAGE)
             ->withQueryString();
 
-        if ($guests->isEmpty() && $guests->total() > 0 && $guests->currentPage() > 1) {
+        if ($view !== 'full' && $guests->isEmpty() && $guests->total() > 0 && $guests->currentPage() > 1) {
             return redirect()->route('events.guests.index', [
                 'event' => $event,
                 ...array_filter([
@@ -49,7 +54,20 @@ class GuestController extends Controller
             ]);
         }
 
-        $fullGuestList = $view === 'full' ? $this->guests->fullList($guestQuery->get()) : [];
+        $fullGuestList = $view === 'full'
+            ? $this->paginatedFullGuestList($request, $event, $this->guests->fullList($guestQuery->get()), $fullListSort)
+            : $this->emptyFullGuestListPaginator($request, $event);
+
+        if ($view === 'full' && $fullGuestList->isEmpty() && $fullGuestList->total() > 0 && $fullGuestList->currentPage() > 1) {
+            return redirect()->route('events.guests.index', [
+                'event' => $event,
+                ...array_filter([
+                    'view' => $view,
+                    'sort' => $fullListSort === 'guest' ? null : $fullListSort,
+                    'page' => $fullGuestList->lastPage(),
+                ]),
+            ]);
+        }
 
         $guests->through(fn (Guest $guest): array => $this->guests->row($event, $guest));
 
@@ -67,6 +85,7 @@ class GuestController extends Controller
             'filters' => [
                 'status' => $status?->value,
                 'view' => $view,
+                'fullListSort' => $fullListSort,
             ],
             'statusOptions' => $this->guests->statusOptions(),
             'links' => [
@@ -139,6 +158,101 @@ class GuestController extends Controller
         abort_unless($value === 'full', 404);
 
         return $value;
+    }
+
+    private function fullListSortFilter(Request $request): string
+    {
+        $value = $request->query('sort');
+
+        if ($value === null || $value === '') {
+            return 'guest';
+        }
+
+        abort_unless(is_string($value), 404);
+        abort_unless(in_array($value, ['guest', 'alphabetical', 'child'], true), 404);
+
+        return $value;
+    }
+
+    /**
+     * @param  Collection<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>  $items
+     * @return LengthAwarePaginator<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>
+     */
+    private function paginatedFullGuestList(Request $request, Event $event, Collection $items, string $sort): LengthAwarePaginator
+    {
+        $sortedItems = $this->sortFullGuestList($items, $sort);
+        $page = $this->currentPage($request);
+
+        return new LengthAwarePaginator(
+            $sortedItems->forPage($page, self::PER_PAGE)->values(),
+            $sortedItems->count(),
+            self::PER_PAGE,
+            $page,
+            [
+                'path' => route('events.guests.index', $event),
+                'query' => array_filter([
+                    'view' => 'full',
+                    'sort' => $sort === 'guest' ? null : $sort,
+                ]),
+            ],
+        );
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>
+     */
+    private function emptyFullGuestListPaginator(Request $request, Event $event): LengthAwarePaginator
+    {
+        return new LengthAwarePaginator([], 0, self::PER_PAGE, $this->currentPage($request), [
+            'path' => route('events.guests.index', $event),
+            'query' => ['view' => 'full'],
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>  $items
+     * @return Collection<int, array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}>
+     */
+    private function sortFullGuestList(Collection $items, string $sort): Collection
+    {
+        return $items
+            ->sort(function (array $first, array $second) use ($sort): int {
+                if ($sort === 'child' && $first['is_child'] !== $second['is_child']) {
+                    return $first['is_child'] ? -1 : 1;
+                }
+
+                if ($sort === 'guest') {
+                    $guestCompare = strnatcasecmp($first['primary_guest'], $second['primary_guest']);
+
+                    if ($guestCompare !== 0) {
+                        return $guestCompare;
+                    }
+
+                    if ($first['is_primary'] !== $second['is_primary']) {
+                        return $first['is_primary'] ? -1 : 1;
+                    }
+
+                    return 0;
+                }
+
+                return strnatcasecmp($this->sortableFullListName($first), $this->sortableFullListName($second));
+            })
+            ->values();
+    }
+
+    /**
+     * @param  array{name: string|null, primary_guest: string, is_child: bool, is_primary: bool, is_named: bool}  $item
+     */
+    private function sortableFullListName(array $item): string
+    {
+        return $item['name'] ?? $item['primary_guest'].' '.($item['is_child'] ? 'child' : 'adult');
+    }
+
+    private function currentPage(Request $request): int
+    {
+        $page = $request->query('page', 1);
+
+        return is_numeric($page) ? max(1, (int) $page) : 1;
     }
 
     private function ensureGuestBelongsToEvent(Event $event, Guest $guest): void

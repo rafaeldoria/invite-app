@@ -335,7 +335,8 @@ class GuestManagementTest extends TestCase
                 ->where('guests.data.0.companions.0.is_child', false)
                 ->where('guests.data.0.companions.1.name', 'Child Companion')
                 ->where('guests.data.0.companions.1.is_child', true)
-                ->has('fullGuestList', 0)
+                ->has('fullGuestList.data', 0)
+                ->where('fullGuestList.total', 0)
                 ->where('guests.data.0.invitation_url', route('public.invitations.show', [$event, $guest->invitation_token]))
             );
     }
@@ -354,32 +355,35 @@ class GuestManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.view', 'full')
-                ->has('fullGuestList', 5)
-                ->where('fullGuestList.0.name', 'Alex Guest')
-                ->where('fullGuestList.0.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.0.is_child', false)
-                ->where('fullGuestList.0.is_primary', true)
-                ->where('fullGuestList.0.is_named', true)
-                ->where('fullGuestList.1.name', 'Named Adult')
-                ->where('fullGuestList.1.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.1.is_child', false)
-                ->where('fullGuestList.1.is_primary', false)
-                ->where('fullGuestList.1.is_named', true)
-                ->where('fullGuestList.2.name', null)
-                ->where('fullGuestList.2.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.2.is_child', false)
-                ->where('fullGuestList.2.is_primary', false)
-                ->where('fullGuestList.2.is_named', false)
-                ->where('fullGuestList.3.name', null)
-                ->where('fullGuestList.3.primary_guest', 'Alex Guest')
-                ->where('fullGuestList.3.is_child', true)
-                ->where('fullGuestList.3.is_primary', false)
-                ->where('fullGuestList.3.is_named', false)
-                ->where('fullGuestList.4.name', $zoe->name)
-                ->where('fullGuestList.4.is_primary', true)
-                ->where('fullGuestList.4.is_named', true)
-                ->missing('fullGuestList.0.invitation_url')
-                ->missing('fullGuestList.0.invitation_token')
+                ->where('filters.fullListSort', 'guest')
+                ->where('fullGuestList.per_page', 10)
+                ->where('fullGuestList.total', 5)
+                ->has('fullGuestList.data', 5)
+                ->where('fullGuestList.data.0.name', 'Alex Guest')
+                ->where('fullGuestList.data.0.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.data.0.is_child', false)
+                ->where('fullGuestList.data.0.is_primary', true)
+                ->where('fullGuestList.data.0.is_named', true)
+                ->where('fullGuestList.data.1.name', 'Named Adult')
+                ->where('fullGuestList.data.1.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.data.1.is_child', false)
+                ->where('fullGuestList.data.1.is_primary', false)
+                ->where('fullGuestList.data.1.is_named', true)
+                ->where('fullGuestList.data.2.name', null)
+                ->where('fullGuestList.data.2.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.data.2.is_child', false)
+                ->where('fullGuestList.data.2.is_primary', false)
+                ->where('fullGuestList.data.2.is_named', false)
+                ->where('fullGuestList.data.3.name', null)
+                ->where('fullGuestList.data.3.primary_guest', 'Alex Guest')
+                ->where('fullGuestList.data.3.is_child', true)
+                ->where('fullGuestList.data.3.is_primary', false)
+                ->where('fullGuestList.data.3.is_named', false)
+                ->where('fullGuestList.data.4.name', $zoe->name)
+                ->where('fullGuestList.data.4.is_primary', true)
+                ->where('fullGuestList.data.4.is_named', true)
+                ->missing('fullGuestList.data.0.invitation_url')
+                ->missing('fullGuestList.data.0.invitation_token')
             );
     }
 
@@ -402,11 +406,11 @@ class GuestManagementTest extends TestCase
             ->get(route('events.guests.index', $event))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('guests.per_page', 20)
+                ->where('guests.per_page', 10)
                 ->where('guests.current_page', 1)
-                ->where('guests.last_page', 2)
+                ->where('guests.last_page', 3)
                 ->where('guests.data.0.name', 'Alpha')
-                ->has('fullGuestList', 0));
+                ->has('fullGuestList.data', 0));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => GuestStatus::Confirmed->value]))
@@ -417,7 +421,7 @@ class GuestManagementTest extends TestCase
                 ->where('guests.total', 2)
                 ->where('guests.data.0.name', 'Charlie')
                 ->where('guests.data.1.name', 'Guest 20')
-                ->has('fullGuestList', 0));
+                ->has('fullGuestList.data', 0));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'view' => 'full']))
@@ -425,26 +429,41 @@ class GuestManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.status', null)
                 ->where('filters.view', 'full')
+                ->where('filters.fullListSort', 'guest')
                 ->where('guests.total', 23)
                 ->where('guests.current_page', 1)
-                ->where('guests.last_page', 2)
-                ->has('fullGuestList', 24)
-                ->where('fullGuestList.0.name', 'Alpha')
-                ->where('fullGuestList.0.is_named', true)
-                ->where('fullGuestList.23.name', 'Aaron Child')
-                ->where('fullGuestList.23.primary_guest', 'Guest 20')
-                ->where('fullGuestList.23.is_child', true)
-                ->where('fullGuestList.23.is_primary', false)
-                ->missing('fullGuestList.0.invitation_url')
-                ->missing('fullGuestList.0.invitation_token'));
+                ->where('guests.last_page', 3)
+                ->where('fullGuestList.per_page', 10)
+                ->where('fullGuestList.total', 24)
+                ->where('fullGuestList.current_page', 1)
+                ->where('fullGuestList.last_page', 3)
+                ->has('fullGuestList.data', 10)
+                ->where('fullGuestList.data.0.name', 'Alpha')
+                ->where('fullGuestList.data.0.is_named', true)
+                ->missing('fullGuestList.data.0.invitation_url')
+                ->missing('fullGuestList.data.0.invitation_token'));
 
         $this->actingAs($user)
-            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'page' => 2]))
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'page' => 3]))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('filters.view', 'full')
-                ->where('guests.current_page', 2)
-                ->has('fullGuestList', 24));
+                ->where('guests.current_page', 3)
+                ->where('fullGuestList.current_page', 3)
+                ->has('fullGuestList.data', 4)
+                ->where('fullGuestList.data.3.name', 'Aaron Child')
+                ->where('fullGuestList.data.3.primary_guest', 'Guest 20')
+                ->where('fullGuestList.data.3.is_child', true)
+                ->where('fullGuestList.data.3.is_primary', false));
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'sort' => 'child']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.fullListSort', 'child')
+                ->where('fullGuestList.total', 24)
+                ->where('fullGuestList.data.0.name', 'Aaron Child')
+                ->where('fullGuestList.data.0.is_child', true));
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'status' => 'maybe']))
@@ -452,6 +471,10 @@ class GuestManagementTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('events.guests.index', ['event' => $event, 'view' => 'modal']))
+            ->assertNotFound();
+
+        $this->actingAs($user)
+            ->get(route('events.guests.index', ['event' => $event, 'view' => 'full', 'sort' => 'random']))
             ->assertNotFound();
     }
 
