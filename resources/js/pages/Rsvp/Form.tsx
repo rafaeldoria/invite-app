@@ -1,10 +1,11 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useMemo, type FormEvent, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Alert } from '../../components/feedback/Alert';
 import { FormErrorSummary } from '../../components/forms/FormErrorSummary';
 import { Field } from '../../components/forms/Field';
 import { Checkbox, TextInput } from '../../components/forms/controls';
 import { Button } from '../../components/ui/Button';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { PublicLayout } from '../../layouts/PublicLayout';
 import { useLocale } from '../../hooks/use-locale';
 import type { RsvpAttendance, RsvpCompanion, RsvpFormData, RsvpFormProps } from '../../types/rsvp';
@@ -14,6 +15,8 @@ const maxCompanions = 5;
 
 export default function Form({ event, rsvp }: RsvpFormProps) {
     const { locale, t, tp } = useLocale();
+    const [isEditing, setIsEditing] = useState(!rsvp.receipt);
+    const formSectionRef = useRef<HTMLElement>(null);
     const form = useForm<RsvpFormData>({
         name: rsvp.initial.name,
         attendance: rsvp.initial.attendance,
@@ -87,15 +90,29 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
 
         form.transform(() => data);
 
+        const options = {
+            preserveScroll: true,
+            onSuccess: () => setIsEditing(false),
+            onError: () => setIsEditing(true),
+        };
+
         if (rsvp.method === 'patch') {
-            form.patch(rsvp.submit_url, { preserveScroll: true });
+            form.patch(rsvp.submit_url, options);
             return;
         }
 
-        form.post(rsvp.submit_url, { preserveScroll: true });
+        form.post(rsvp.submit_url, options);
     }
 
-    const title = rsvp.receipt ? t('rsvp.receipt.title') : t('rsvp.form.title');
+    function editResponse() {
+        setIsEditing(true);
+        window.requestAnimationFrame(() => formSectionRef.current?.scrollIntoView({ block: 'start' }));
+    }
+
+    const isSaved = rsvp.receipt !== null;
+    const showForm = !isSaved || isEditing;
+    const title = isSaved ? (isEditing ? t('rsvp.receipt.updateAction') : t('rsvp.receipt.title')) : t('rsvp.form.title');
+    const receiptAlert = rsvp.receipt ? receiptAlertContent(rsvp.receipt.status, t) : null;
     const companionCount = form.data.companions.length;
     const partySize = isConfirmed ? 1 + companionCount : 0;
     const companionErrors = form.errors as Record<string, string | undefined>;
@@ -105,7 +122,7 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
             <Head title={`${title} - ${event.name}`} />
 
             <main id="main-content" className="mx-auto grid w-full max-w-5xl gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:py-10">
-                <section className="min-w-0 rounded-xl bg-surface p-5 shadow-sm sm:p-7" aria-labelledby="rsvp-form-title">
+                <section ref={formSectionRef} className="min-w-0 rounded-xl bg-surface p-5 shadow-sm sm:p-7" aria-labelledby="rsvp-form-title">
                     <div className="space-y-2">
                         {rsvp.event_url ? (
                             <Link href={rsvp.event_url} className="inline-flex rounded-md text-sm font-semibold text-accent-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-focus">
@@ -116,150 +133,136 @@ export default function Form({ event, rsvp }: RsvpFormProps) {
                         <p className="max-w-2xl text-sm leading-6 text-muted">{t('rsvp.form.description')}</p>
                     </div>
 
-                    {rsvp.receipt ? (
+                    {receiptAlert && !isEditing ? (
                         <div className="mt-6">
-                            <Alert title={t('rsvp.receipt.savedTitle')} tone="success" />
+                            <Alert title={receiptAlert.title} tone={receiptAlert.tone}>{receiptAlert.description}</Alert>
                         </div>
                     ) : null}
 
-                    {errors.length > 0 ? (
+                    {errors.length > 0 && showForm ? (
                         <div className="mt-6">
                             <FormErrorSummary title={t('auth.formErrorTitle')} errors={errors} />
                         </div>
                     ) : null}
 
-                    <form onSubmit={submit} className="mt-6 space-y-6" noValidate>
-                        {rsvp.name_locked ? (
-                            <div className="rounded-lg bg-canvas p-4">
-                                <p className="text-sm font-semibold text-ink">{t('rsvp.form.invitedGuest')}</p>
-                                <p className="mt-1 break-words text-base text-muted">{rsvp.guest_name}</p>
-                            </div>
-                        ) : (
-                            <Field id="rsvp-name" label={t('rsvp.form.name')} required error={form.errors.name}>
-                                <TextInput id="rsvp-name" value={form.data.name} maxLength={120} invalid={Boolean(form.errors.name)} onChange={(change) => form.setData('name', change.target.value)} autoComplete="name" />
-                            </Field>
-                        )}
-
-                        <fieldset className="space-y-3" aria-describedby={form.errors.attendance ? 'rsvp-attendance-error' : undefined}>
-                            <legend className="text-sm font-semibold text-ink">{t('rsvp.form.attendance')}</legend>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <AttendanceOption
-                                    id="rsvp-attendance-confirmed"
-                                    name="attendance"
-                                    checked={form.data.attendance === 'confirmed'}
-                                    emoji="😁"
-                                    title={t('rsvp.form.confirm')}
-                                    description={t('rsvp.form.confirmDescription')}
-                                    onChange={() => chooseAttendance('confirmed')}
-                                />
-                                <AttendanceOption
-                                    id="rsvp-attendance-declined"
-                                    name="attendance"
-                                    checked={form.data.attendance === 'declined'}
-                                    emoji="😔"
-                                    title={t('rsvp.form.decline')}
-                                    description={t('rsvp.form.declineDescription')}
-                                    onChange={() => chooseAttendance('declined')}
-                                />
-                            </div>
-                            {form.errors.attendance ? <p id="rsvp-attendance-error" className="text-sm font-medium text-danger-ink" role="alert">{form.errors.attendance}</p> : null}
-                        </fieldset>
-
-                        {isConfirmed ? (
-                            <section id="rsvp-companions" className="space-y-3" aria-labelledby="rsvp-companions-title">
-                                <div className="space-y-1">
-                                    <h2 id="rsvp-companions-title" className="text-sm font-semibold text-ink">{t('rsvp.form.companionsTitle')}</h2>
-                                    <p className="text-sm leading-6 text-muted">{t('rsvp.form.companionHelp')}</p>
+                    {showForm ? (
+                        <form onSubmit={submit} className="mt-6 space-y-6" noValidate>
+                            {rsvp.name_locked ? (
+                                <div className="rounded-lg bg-canvas p-4">
+                                    <p className="text-sm font-semibold text-ink">{t('rsvp.form.invitedGuest')}</p>
+                                    <p className="mt-1 break-words text-base text-muted">{rsvp.guest_name}</p>
                                 </div>
+                            ) : (
+                                <Field id="rsvp-name" label={t('rsvp.form.name')} required error={form.errors.name}>
+                                    <TextInput id="rsvp-name" value={form.data.name} maxLength={120} invalid={Boolean(form.errors.name)} onChange={(change) => form.setData('name', change.target.value)} autoComplete="name" />
+                                </Field>
+                            )}
 
-                                {form.data.companions.map((companion, index) => {
-                                    const nameId = `rsvp-companion-${index}-name`;
-                                    const nameError = companionErrors[`companions.${index}.name`];
+                            <fieldset className="space-y-3" aria-describedby={form.errors.attendance ? 'rsvp-attendance-error' : undefined}>
+                                <legend className="text-sm font-semibold text-ink">{t('rsvp.form.attendance')}</legend>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <AttendanceOption
+                                        id="rsvp-attendance-confirmed"
+                                        name="attendance"
+                                        checked={form.data.attendance === 'confirmed'}
+                                        emoji="😁"
+                                        title={t('rsvp.form.confirm')}
+                                        description={t('rsvp.form.confirmDescription')}
+                                        onChange={() => chooseAttendance('confirmed')}
+                                    />
+                                    <AttendanceOption
+                                        id="rsvp-attendance-declined"
+                                        name="attendance"
+                                        checked={form.data.attendance === 'declined'}
+                                        emoji="😔"
+                                        title={t('rsvp.form.decline')}
+                                        description={t('rsvp.form.declineDescription')}
+                                        onChange={() => chooseAttendance('declined')}
+                                    />
+                                </div>
+                                {form.errors.attendance ? <p id="rsvp-attendance-error" className="text-sm font-medium text-danger-ink" role="alert">{form.errors.attendance}</p> : null}
+                            </fieldset>
 
-                                    return (
-                                        <div key={index} className="rounded-lg border border-border bg-canvas p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <p className="text-sm font-semibold text-ink">{t('rsvp.form.companionNumber', { number: String(index + 1) })}</p>
-                                                <button type="button" onClick={() => removeCompanion(index)} className="inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-danger-ink hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                                                    {t('rsvp.form.removeCompanion')}
-                                                </button>
-                                            </div>
-                                            <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-start">
-                                                <Field id={nameId} label={t('rsvp.form.companionName')} required error={nameError}>
-                                                    <TextInput
-                                                        id={nameId}
-                                                        value={companion.name}
-                                                        maxLength={120}
-                                                        invalid={Boolean(nameError)}
-                                                        onChange={(change) => updateCompanion(index, { ...companion, name: change.target.value })}
-                                                        autoComplete="name"
-                                                    />
-                                                </Field>
-                                                <div className="pt-1 sm:pt-8">
-                                                    <Checkbox
-                                                        label={t('rsvp.form.childCompanion')}
-                                                        checked={companion.is_child}
-                                                        onChange={(change) => updateCompanion(index, { ...companion, is_child: change.target.checked })}
-                                                    />
+                            {isConfirmed ? (
+                                <section id="rsvp-companions" className="space-y-3" aria-labelledby="rsvp-companions-title">
+                                    <div className="space-y-1">
+                                        <h2 id="rsvp-companions-title" className="text-sm font-semibold text-ink">{t('rsvp.form.companionsTitle')}</h2>
+                                        <p className="text-sm leading-6 text-muted">{t('rsvp.form.companionHelp')}</p>
+                                    </div>
+
+                                    {form.data.companions.map((companion, index) => {
+                                        const nameId = `rsvp-companion-${index}-name`;
+                                        const nameError = companionErrors[`companions.${index}.name`];
+
+                                        return (
+                                            <div key={index} className="rounded-lg border border-border bg-canvas p-4">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <p className="text-sm font-semibold text-ink">{t('rsvp.form.companionNumber', { number: String(index + 1) })}</p>
+                                                    <button type="button" onClick={() => removeCompanion(index)} className="inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-danger-ink hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                                        {t('rsvp.form.removeCompanion')}
+                                                    </button>
+                                                </div>
+                                                <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-start">
+                                                    <Field id={nameId} label={t('rsvp.form.companionName')} required error={nameError}>
+                                                        <TextInput
+                                                            id={nameId}
+                                                            value={companion.name}
+                                                            maxLength={120}
+                                                            invalid={Boolean(nameError)}
+                                                            onChange={(change) => updateCompanion(index, { ...companion, name: change.target.value })}
+                                                            autoComplete="name"
+                                                        />
+                                                    </Field>
+                                                    <div className="pt-1 sm:pt-8">
+                                                        <Checkbox
+                                                            label={t('rsvp.form.childCompanion')}
+                                                            checked={companion.is_child}
+                                                            onChange={(change) => updateCompanion(index, { ...companion, is_child: change.target.checked })}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
 
-                                {companionErrors.companions ? <p className="text-sm font-medium text-danger-ink" role="alert">{companionErrors.companions}</p> : null}
+                                    {companionErrors.companions ? <p className="text-sm font-medium text-danger-ink" role="alert">{companionErrors.companions}</p> : null}
 
-                                {form.data.companions.length < maxCompanions ? (
-                                    <button type="button" onClick={addCompanion} className="flex min-h-24 w-full items-center justify-between gap-4 rounded-xl border border-border-strong bg-surface px-5 py-4 text-left transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                                        <span className="text-base font-semibold text-ink">{t('rsvp.form.addCompanion')}</span>
-                                        <span aria-hidden="true" className="text-4xl font-light leading-none text-focus">+</span>
-                                    </button>
-                                ) : (
-                                    <Alert title={t('rsvp.form.companionLimitTitle')} tone="info">{t('rsvp.form.companionLimitDescription')}</Alert>
-                                )}
-                            </section>
-                        ) : null}
+                                    {form.data.companions.length < maxCompanions ? (
+                                        <button type="button" onClick={addCompanion} className="flex min-h-24 w-full items-center justify-between gap-4 rounded-xl border border-border-strong bg-surface px-5 py-4 text-left transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                            <span className="text-base font-semibold text-ink">{t('rsvp.form.addCompanion')}</span>
+                                            <span aria-hidden="true" className="text-4xl font-light leading-none text-focus">+</span>
+                                        </button>
+                                    ) : (
+                                        <Alert title={t('rsvp.form.companionLimitTitle')} tone="info">{t('rsvp.form.companionLimitDescription')}</Alert>
+                                    )}
+                                </section>
+                            ) : null}
 
-                        <div className="rounded-lg bg-canvas p-4 text-sm text-muted">
-                            <p className="font-semibold text-ink">{t('rsvp.form.partySummaryTitle')}</p>
-                            <p className="mt-1">{partySummary(form.data.attendance, partySize, companionCount, t, tp)}</p>
-                        </div>
+                            <div className="rounded-lg bg-canvas p-4 text-sm text-muted">
+                                <p className="font-semibold text-ink">{t('rsvp.form.partySummaryTitle')}</p>
+                                <p className="mt-1">{partySummary(form.data.attendance, partySize, companionCount, t, tp)}</p>
+                            </div>
 
-                        <Button type="submit" className="w-full sm:w-auto" loading={form.processing} loadingLabel={t('rsvp.form.submitting')}>
-                            {t('rsvp.form.submit')}
-                        </Button>
-                    </form>
+                            <Button type="submit" className="w-full sm:w-auto" loading={form.processing} loadingLabel={t('rsvp.form.submitting')}>
+                                {t('rsvp.form.submit')}
+                            </Button>
+                        </form>
+                    ) : null}
                 </section>
 
                 <aside className="min-w-0 space-y-4 lg:sticky lg:top-6">
-                    <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-event-title">
-                        <h2 id="rsvp-event-title" className="text-lg font-semibold text-ink">{event.name}</h2>
-                        {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{t('theme.label')}: {event.theme}</p> : null}
-                        <dl className="mt-4 space-y-3 text-sm">
-                            <div>
-                                <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
-                                <dd className="mt-1 text-muted">{formatDate(event.starts_at, locale, event.timezone)} · {formatTime(event.starts_at, locale, event.timezone)}</dd>
-                            </div>
-                            <div>
-                                <dt className="font-semibold text-ink">{t('events.fields.location')}</dt>
-                                <dd className="mt-1 break-words text-muted">{event.location}</dd>
-                            </div>
-                        </dl>
-                    </section>
-
                     {rsvp.receipt ? (
-                        <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-receipt-title">
-                            <h2 id="rsvp-receipt-title" className="text-base font-semibold text-ink">{t('rsvp.receipt.summaryTitle')}</h2>
-                            <p className="mt-5 text-sm font-semibold text-ink">
-                                <span aria-hidden="true">✓ </span>{statusLabel(rsvp.receipt.status, t)}
-                            </p>
-                            <dl className="mt-5 space-y-5 text-sm">
-                                <ReceiptRow label={t('rsvp.receipt.guest')} value={rsvp.receipt.name} />
-                                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptPartySize(rsvp.receipt.status, rsvp.receipt.party_size, t, tp)} />
-                                <ReceiptRow label={t('rsvp.receipt.updatedAt')} value={`${formatDate(rsvp.receipt.updated_at, locale, event.timezone)} · ${formatTime(rsvp.receipt.updated_at, locale, event.timezone)}`} />
-                            </dl>
-                        </section>
+                        <ReceiptCard
+                            receipt={rsvp.receipt}
+                            timezone={event.timezone}
+                            locale={locale}
+                            showEditAction={!isEditing}
+                            onEdit={editResponse}
+                            t={t}
+                            tp={tp}
+                        />
                     ) : null}
+                    <EventDetailsCard event={event} locale={locale} t={t} />
                 </aside>
             </main>
         </PublicLayout>
@@ -283,6 +286,64 @@ function AttendanceOption({ id, name, checked, emoji, title, description, onChan
     );
 }
 
+function EventDetailsCard({ event, locale, t }: { event: RsvpFormProps['event']; locale: ReturnType<typeof useLocale>['locale']; t: ReturnType<typeof useLocale>['t'] }) {
+    return (
+        <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-event-title">
+            <h2 id="rsvp-event-title" className="text-lg font-semibold text-ink">{event.name}</h2>
+            {event.theme ? <p className="mt-1 text-sm font-semibold text-accent-strong">{t('theme.label')}: {event.theme}</p> : null}
+            <dl className="mt-4 space-y-3 text-sm">
+                <div>
+                    <dt className="font-semibold text-ink">{t('events.fields.startsAt')}</dt>
+                    <dd className="mt-1 text-muted">{formatDate(event.starts_at, locale, event.timezone)} · {formatTime(event.starts_at, locale, event.timezone)}</dd>
+                </div>
+                <div>
+                    <dt className="font-semibold text-ink">{t('events.fields.location')}</dt>
+                    <dd className="mt-1 break-words text-muted">{event.location}</dd>
+                </div>
+            </dl>
+        </section>
+    );
+}
+
+function ReceiptCard({
+    receipt,
+    timezone,
+    locale,
+    showEditAction,
+    onEdit,
+    t,
+    tp,
+}: {
+    receipt: NonNullable<RsvpFormProps['rsvp']['receipt']>;
+    timezone: string;
+    locale: ReturnType<typeof useLocale>['locale'];
+    showEditAction: boolean;
+    onEdit: () => void;
+    t: ReturnType<typeof useLocale>['t'];
+    tp: ReturnType<typeof useLocale>['tp'];
+}) {
+    return (
+        <section className="rounded-xl bg-surface p-5 shadow-sm" aria-labelledby="rsvp-receipt-title">
+            <div>
+                <h2 id="rsvp-receipt-title" className="text-base font-semibold text-ink">{t('rsvp.receipt.summaryTitle')}</h2>
+                <div className="mt-4">
+                    <StatusBadge status={receipt.status}>{statusLabel(receipt.status, t)}</StatusBadge>
+                </div>
+            </div>
+            <dl className="mt-5 space-y-5 text-sm">
+                <ReceiptRow label={t('rsvp.receipt.guest')} value={receipt.name} />
+                <ReceiptRow label={t('rsvp.receipt.partySize')} value={receiptPartySize(receipt.status, receipt.party_size, t, tp)} />
+                <ReceiptRow label={t('rsvp.receipt.updatedAt')} value={`${formatDate(receipt.updated_at, locale, timezone)} · ${formatTime(receipt.updated_at, locale, timezone)}`} />
+            </dl>
+            {showEditAction ? (
+                <Button type="button" className="mt-5 w-full" onClick={onEdit}>
+                    {t('rsvp.receipt.updateAction')}
+                </Button>
+            ) : null}
+        </section>
+    );
+}
+
 function ReceiptRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
@@ -290,6 +351,21 @@ function ReceiptRow({ label, value }: { label: string; value: string }) {
             <dd className="mt-1 break-words text-ink">{value}</dd>
         </div>
     );
+}
+
+function receiptAlertContent(status: RsvpAttendance, t: ReturnType<typeof useLocale>['t']): { title: string; description?: string; tone: 'success' | 'error' } {
+    if (status === 'declined') {
+        return {
+            title: t('rsvp.receipt.declinedTitle'),
+            description: t('rsvp.receipt.declinedDescription'),
+            tone: 'error',
+        };
+    }
+
+    return {
+        title: t('rsvp.receipt.confirmedTitle'),
+        tone: 'success',
+    };
 }
 
 function partySummary(attendance: RsvpAttendance | '', partySize: number, companionCount: number, t: ReturnType<typeof useLocale>['t'], tp: ReturnType<typeof useLocale>['tp']): ReactNode {
